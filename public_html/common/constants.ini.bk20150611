@@ -1,0 +1,2196 @@
+<?php
+/*
+ * [新★会社設立.JP ツール]
+ * 定数定義ファイル
+ *
+ * 更新履歴：2008/12/01	d.ishikawa	新規作成
+ *
+ */
+
+
+
+//通常_URL----------------------------------------------------start
+//基本URL
+define('URL', 'http://www.seturitu-kun.com');
+
+//[管理画面]基本URL
+define('URL_BASE', URL.'');
+
+//[管理画面]ログインページURL
+define('URL_LOGIN', URL.'/login_user/');
+//通常_URL----------------------------------------------------end
+
+//SSL_URL-----------------------------------------------------start
+//基本URL
+define('SSL_URL', 'https://sv306.xserver.jp/~sin-kaisha/seturitu-kun.com');
+
+//本サイト基本ディレクトリ
+define('SSL_URL_BASE', SSL_URL.'');
+//SSL_URL-----------------------------------------------------end
+
+//会社情報----------------------------------------------------start
+//会社名
+define('COMPANY_NAME', "株式会社WOOROM.");
+//郵便番号
+define('COMPANY_ZIP', "〒106-0032");
+//住所
+define('COMPANY_ADDRESS', "東京都港区六本木5-16-50 六本木デュープレックスM's407");
+//電話
+define('COMPANY_TEL', "03-3586-1523");
+//FAX
+define('COMPANY_FAX', "03-3586-1521");
+//e-mail
+define('COMPANY_E_MAIL', "info@seturitu-kun.com");
+//e-mail(リンク用)
+define('COMPANY_E_MAIL_LINK', "link@seturitu-kun.com");
+//営業時間
+define('COMPANY_BUSINESS_HOURS', "10:00〜19:00");
+
+//マスター用メールアドレス
+$_COMPANY_MASTER_MAIL_LIST = array("info@woorom.com");
+
+// すべてお任せプランに変更時に送信する担当者のメールアドレス
+define('MASTER_EMAIL_COMPANY', 'info@sin-kaisha.jp');
+define('MASTER_EMAIL_COMPANY_LLC', 'info@llp-llc.jp');
+
+//振込口座
+////名義
+//define('COMPANY_BANK_ACCOUNT_NAME', "カ)ウーロン.");
+////銀行名
+//define('COMPANY_BANK_ACCOUNT_BANK_NAME', "ジャパンネット銀行");
+////支店
+//define('COMPANY_BANK_ACCOUNT_BRANCH_NAME', "本店営業部(支店番号001)");
+////普通
+//define('COMPANY_BANK_ACCOUNT_TYPE', "普通");
+////番号
+//define('COMPANY_BANK_ACCOUNT_NUMBER', "3857347");
+////名義
+//define('COMPANY_BANK_ACCOUNT_NAME', "コヤマ ナオフミ");
+////銀行名
+//define('COMPANY_BANK_ACCOUNT_BANK_NAME', "楽天銀行");
+////支店
+//define('COMPANY_BANK_ACCOUNT_BRANCH_NAME', "サンバ支店");
+////普通
+//define('COMPANY_BANK_ACCOUNT_TYPE', "普通");
+////番号
+//define('COMPANY_BANK_ACCOUNT_NUMBER', "1781984");
+
+////名義
+//define('COMPANY_BANK_ACCOUNT_NAME', "カトウ ノボル");
+////銀行名
+//define('COMPANY_BANK_ACCOUNT_BANK_NAME', "さわやか信用金庫");
+////支店
+//define('COMPANY_BANK_ACCOUNT_BRANCH_NAME', "六本木支店");
+////普通
+//define('COMPANY_BANK_ACCOUNT_TYPE', "普通");
+////番号
+//define('COMPANY_BANK_ACCOUNT_NUMBER', "1177316");
+
+//名義
+define('COMPANY_BANK_ACCOUNT_NAME', "カ)ウ-ロン. (株式会社WOOROM.は行政書士・公認会計士・司法書士より委託を受け会社設立費用を代理受領しています。領収書をご希望の方につきましては、各士業から発行いたします。)");
+//銀行名
+define('COMPANY_BANK_ACCOUNT_BANK_NAME', "楽天銀行");
+//支店
+define('COMPANY_BANK_ACCOUNT_BRANCH_NAME', "第一営業支店");
+//普通
+define('COMPANY_BANK_ACCOUNT_TYPE', "普通");
+//番号
+define('COMPANY_BANK_ACCOUNT_NUMBER', "7113304");
+
+
+////コメント
+//define('COMPANY_BANK_COMMENT', "振込先：\n".COMPANY_BANK_ACCOUNT_BANK_NAME."\n".COMPANY_BANK_ACCOUNT_BRANCH_NAME."\n".COMPANY_BANK_ACCOUNT_TYPE." ".COMPANY_BANK_ACCOUNT_NUMBER."\n".COMPANY_BANK_ACCOUNT_NAME);
+
+//クレジットカード情報
+//コメント
+define('COMPANY_CARD_COMMENT', "後日、お客様のメールアドレスにPayPalでのお支払方法をお送り致します。");
+
+
+//振込口座(印鑑用)
+//名義
+define('SEAL_BANK_ACCOUNT_NAME', "カ)ウーロン.");
+//銀行名
+define('SEAL_BANK_ACCOUNT_BANK_NAME', "楽天銀行");
+//支店
+define('SEAL_BANK_ACCOUNT_BRANCH_NAME', "第一営業支店");
+//普通
+define('SEAL_BANK_ACCOUNT_TYPE', "普通");
+//番号
+define('SEAL_BANK_ACCOUNT_NUMBER', "7113304");
+
+////行政書士
+////名前
+//define('ADMINISTRATIVE_SCRIVENER_NAME', "行政書士 小山 尚文");
+////住所
+//define('ADMINISTRATIVE_SCRIVENER_ADDRESS', "東京都中央区銀座一丁目15番7-503号");
+
+//行政書士
+//名前
+define('ADMINISTRATIVE_SCRIVENER_NAME', "行政書士 小林章浩");
+//住所
+define('ADMINISTRATIVE_SCRIVENER_ADDRESS', "東京都新宿区北新宿３丁目２番１６−１００６号");
+
+//会社情報----------------------------------------------------end
+
+//タイトル----------------------------------------------------start
+//サイトタイトル
+define('SITE_TITLE', '新★会社設立くんで法人設立');
+
+//タイトル----------------------------------------------------end
+
+//ページタイトル----------------------------------------------start
+//ホーム
+define('PAGE_TITLE_HOME', 'ホーム');
+//ユーザーページ
+define('PAGE_TITLE_USER', 'ユーザーページ');
+//株式会社設立メニュー
+define('PAGE_TITLE_COMPANY', '株式会社設立メニュー');
+//株式会社設立情報登録
+define('PAGE_TITLE_COMPANY_INFO', '株式会社設立情報登録');
+//株式会社設立情報登録
+define('PAGE_TITLE_COMPANY_FREE_INFO', '株式会社設立情報登録');
+//定款認証
+define('PAGE_TITLE_COMPANY_ARTICLE', '定款認証');
+//各種申請書類 印刷
+define('PAGE_TITLE_COMPANY_PDF', '各種申請書類 印刷');
+//PDF作成エラー(各種申請書類 印刷 エラー)
+define('PAGE_TITLE_COMPANY_PDF_ERR', 'PDF作成エラー');
+// すべてお任せプランに変更
+define('PAGE_TITLE_COMPANY_PLAN', 'すべてお任せプランに変更');
+//登記完了後に必要な書類
+define('PAGE_TITLE_COMPANY_DOCUMENTS', '登記完了後に必要な書類');
+//お支払い報告
+define('PAGE_TITLE_PAY', 'お支払い報告');
+//ご利用料金のお支払い
+define('PAGE_TITLE_BUY', 'ご利用料金のお支払い');
+//ユーザー登録
+define('PAGE_TITLE_REGIST', 'ユーザー登録');
+//ユーザー登録(OEM・代理店制度)
+define('PAGE_TITLE_REGIST_OEM', 'ユーザー登録(OEM・代理店制度)');
+//ユーザー登録(ログイン時)
+define('PAGE_TITLE_REGIST_LOGIN', '登録基本情報');
+//法人印注文
+define('PAGE_TITLE_SEAL', '法人印注文');
+//ユーザーログイン
+define('PAGE_TITLE_LOGIN', 'ログイン');
+//ユーザーログイン(ログインしてないときの警告ページ)
+define('PAGE_TITLE_LOGIN_USER', 'ユーザーログイン');
+//ユーザーログアウト
+define('PAGE_TITLE_LOGOUT', 'ログアウト');
+//パスワード確認
+define('PAGE_TITLE_LOGIN_REMIND', 'パスワード確認');
+//登録解除
+define('PAGE_TITLE_CANCEL', '登録解除');
+//お問い合わせ
+define('PAGE_TITLE_INQUIRY', 'お問い合わせ');
+//ご利用ガイド
+define('PAGE_TITLE_GUIDE', 'ご利用ガイド');
+//体験者の声
+define('PAGE_TITLE_EXPERIENCE', '体験者の声');
+//よくある質問
+define('PAGE_TITLE_FAQ', 'よくある質問');
+//サイトマップ
+define('PAGE_TITLE_SITEMAP', 'サイトマップ');
+//プライバシーポリシー
+define('PAGE_TITLE_PRIVACY', 'プライバシーポリシー');
+//リンク
+define('PAGE_TITLE_LINK', 'リンク');
+//リンク(相互リンク)
+define('PAGE_TITLE_LINK_INQUIRY', '相互リンク');
+//リンク(リンクバナー)
+define('PAGE_TITLE_LINK_BANNER', 'リンクバナー');
+
+define('PAGE_TITLE_ABOUT', '会社概要');
+define('PAGE_TITLE_LAW', '特定商取引');
+define('PAGE_TITLE_OPTION_SERVICE', 'オプションサービス');
+
+//合同会社設立LLCメニュー
+define('PAGE_TITLE_LLC', '合同会社設立LLCメニュー');
+//合同会社設立LLC情報登録
+define('PAGE_TITLE_LLC_INFO', '合同会社設立LLC情報登録');
+//合同会社設立LLC情報登録[定款自治]
+define('PAGE_TITLE_LLC_INFO_ARTICLE', '定款自治の設定');
+//定款認証
+define('PAGE_TITLE_LLC_ARTICLE', '定款認証');
+//各種申請書類 印刷
+define('PAGE_TITLE_LLC_PDF', '各種申請書類 印刷');
+//PDF作成エラー(各種申請書類 印刷 エラー)
+define('PAGE_TITLE_LLC_PDF_ERR', 'PDF作成エラー');
+// すべてお任せプランに変更
+define('PAGE_TITLE_LLC_PLAN', 'すべてお任せプランに変更');
+
+//検索
+define('PAGE_TITLE_SEARCH', '検索');
+
+//管理者用
+//ユーザー一覧ページ
+define('PAGE_TITLE_ADMIN_USER', '[管理者用]ユーザー一覧');
+//よくある質問
+define('PAGE_TITLE_ADMIN_FAQ', '[管理者用]よくある質問');
+//ページタイトル----------------------------------------------end
+
+//ページキーワード---------------------------------------------------start
+define('PAGE_KEYWORDS_HOME', '法人設立,会社設立,株式会社');
+define('PAGE_KEYWORDS_GUIDE', '会員登録,無料,設立,法人設立,株式会社');
+define('PAGE_KEYWORDS_REGIST', 'ユーザー登録,無料,法人設立,会社設立,株式会社');
+define('PAGE_KEYWORDS_LOGIN', 'ログイン,法人設立,会社設立,株式会社');
+define('PAGE_KEYWORDS_FAQ', 'FAQ,よくある質問,法人設立,会社設立,株式会社');
+define('PAGE_KEYWORDS_INQUIRY', 'お問い合わせ,法人設立,会社設立,株式会社');
+define('PAGE_KEYWORDS_SITEMAP', 'サイトマップ,法人設立,会社設立,株式会社');
+define('PAGE_KEYWORDS_PRIVACY', 'プライバシーポリシー,法人設立,会社設立,株式会社');
+define('PAGE_KEYWORDS_ABOUT', '会社概要,設立,会社設立,株式会社');
+define('PAGE_KEYWORDS_LAW', '特定商取引,設立,会社設立,株式会社');
+define('PAGE_KEYWORDS_LINK', 'リンク,設立,会社設立,株式会社');
+define('PAGE_KEYWORDS_LINK_INQUIRY', '相互リンク,設立,会社設立,株式会社');
+define('PAGE_KEYWORDS_LINK_BANNER', 'リンクバナー,設立,会社設立,株式会社');
+//ページキーワード---------------------------------------------------end
+
+//ページ説明---------------------------------------------------start
+define('PAGE_DESCRIPTION_HOME', '自分ですぐ出来る新会社設立！株式会社・合同会社の法人設立は新★会社設立くんにお任せください！電子定款から登記申請書類の作成まで、画面に従って入力するだけでOK。お気軽にご相談ください。');
+define('PAGE_DESCRIPTION_GUIDE', '新★会社設立くんのご利用ガイドです。会員登録（無料）から登記申請までのステップを紹介。株式会社・合同会社の法人設立は新★会社設立くんにお任せください！電子定款から登記申請書類の作成まで、画面に従って入力するだけでOK。お気軽にご相談ください。');
+define('PAGE_DESCRIPTION_REGIST', '登録無料！ユーザー登録はこちらから。株式会社・合同会社の法人設立は新★会社設立くんにお任せください！電子定款から登記申請書類の作成まで、画面に従って入力するだけでOK。お気軽にご相談ください。');
+define('PAGE_DESCRIPTION_LOGIN', 'ログインページ。株式会社・合同会社の法人設立は新★会社設立くんにお任せください！電子定款から登記申請書類の作成まで、画面に従って入力するだけでOK。お気軽にご相談ください。');
+define('PAGE_DESCRIPTION_FAQ', '良くある質問。株式会社・合同会社の法人設立は新★会社設立くんにお任せください！電子定款から登記申請書類の作成まで、画面に従って入力するだけでOK。お気軽にご相談ください。');
+define('PAGE_DESCRIPTION_INQUIRY', 'お問い合わせ。株式会社・合同会社の法人設立は新★会社設立くんにお任せください！電子定款から登記申請書類の作成まで、画面に従って入力するだけでOK。お気軽にご相談ください。');
+define('PAGE_DESCRIPTION_SITEMAP', 'サイトマップ。株式会社・合同会社の法人設立は新★会社設立くんにお任せください！電子定款から登記申請書類の作成まで、画面に従って入力するだけでOK。お気軽にご相談ください。');
+define('PAGE_DESCRIPTION_ABOUT', '会社概要。株式会社・合同会社の法人設立は新★会社設立くんにお任せください！電子定款から登記申請書類の作成まで、画面に従って入力するだけでOK。お気軽にご相談ください。');
+define('PAGE_DESCRIPTION_LAW', '特定商取引。株式会社・合同会社の法人設立は新★会社設立くんにお任せください！電子定款から登記申請書類の作成まで、画面に従って入力するだけでOK。お気軽にご相談ください。');
+define('PAGE_DESCRIPTION_PRIVACY', 'プライバシーポリシー。株式会社・合同会社の法人設立は新★会社設立くんにお任せください！電子定款から登記申請書類の作成まで、画面に従って入力するだけでOK。お気軽にご相談ください。');
+define('PAGE_DESCRIPTION_LINK', 'リンク。株式会社・合同会社の法人設立は新★会社設立くんにお任せください！電子定款から登記申請書類の作成まで、画面に従って入力するだけでOK。お気軽にご相談ください。');
+define('PAGE_DESCRIPTION_LINK_INQUIRY', '相互リンク。株式会社・合同会社の法人設立は新★会社設立くんにお任せください！電子定款から登記申請書類の作成まで、画面に従って入力するだけでOK。お気軽にご相談ください。');
+define('PAGE_DESCRIPTION_LINK_BANNER', 'リンクバナー。株式会社・合同会社の法人設立は新★会社設立くんにお任せください！電子定款から登記申請書類の作成まで、画面に従って入力するだけでOK。お気軽にご相談ください。');
+//ページ説明---------------------------------------------------end
+
+//ページDIR---------------------------------------------------start
+//ホーム
+define('PAGE_DIR_HOME', '/');
+//ユーザーページ
+define('PAGE_DIR_USER', '/user/');
+//株式会社設立メニュー
+define('PAGE_DIR_COMPANY', '/user/company/');
+//株式会社設立情報登録
+define('PAGE_DIR_COMPANY_INFO', '/user/company/info/');
+//株式会社設立情報登録
+define('PAGE_DIR_COMPANY_FREE_INFO', '/user/company/free_info/');
+//定款認証
+define('PAGE_DIR_COMPANY_ARTICLE', '/user/company/article/');
+//各種申請書類 印刷
+define('PAGE_DIR_COMPANY_PDF', '/user/company/pdf/');
+//PDF作成エラー(各種申請書類 印刷 エラー)
+define('PAGE_DIR_COMPANY_PDF_ERR', '/user/company/pdf/error.php');
+//登記完了後に必要な書類
+define('PAGE_DIR_COMPANY_DOCUMENTS', '/user/company/documents/');
+// すべてお任せプランに変更
+define('PAGE_DIR_COMPANY_PLAN', '/user/company/plan/');
+//お支払い報告
+define('PAGE_DIR_PAY', '/user/pay/');
+//ご利用料金お支払い
+define('PAGE_DIR_BUY', '/user/buy/');
+//ユーザー登録
+define('PAGE_DIR_REGIST', '/regist/');
+//ユーザー登録(OEM・代理店制度)
+define('PAGE_DIR_REGIST_OEM', '/regist_oem/');
+//法人印注文
+define('PAGE_DIR_SEAL', '/seal/');
+//ユーザーログイン
+define('PAGE_DIR_LOGIN', '/login/');
+//ユーザーログイン(ログインしてないときの警告ページ)
+define('PAGE_DIR_LOGIN_USER', '/login_user/');
+//ユーザーログアウト
+define('PAGE_DIR_LOGOUT', '/logout/');
+//パスワード確認
+define('PAGE_DIR_LOGIN_REMIND', '/login_remind/');
+//登録解除
+define('PAGE_DIR_CANCEL', '/user/cancel/');
+//お問い合わせ
+define('PAGE_DIR_INQUIRY', '/inquiry/');
+//ご利用ガイド
+define('PAGE_DIR_GUIDE', '/guide/');
+//体験者の声
+define('PAGE_DIR_EXPERIENCE', '/experience/');
+//よくある質問
+define('PAGE_DIR_FAQ', '/faq/');
+//サイトマップ
+define('PAGE_DIR_SITEMAP', '/sitemap/');
+
+//プライバシーポリシー
+define('PAGE_DIR_PRIVACY', '/privacy/');
+//リンク
+define('PAGE_DIR_LINK', '/link/');
+//リンク(相互リンク)
+define('PAGE_DIR_LINK_INQUIRY', '/link/link.php');
+//リンク(リンクバナー)
+define('PAGE_DIR_LINK_BANNER', '/link/tag.php');
+
+define('PAGE_DIR_ABOUT', '/about/');
+define('PAGE_DIR_LAW', '/law/');
+
+//合同会社設立LLCメニュー
+define('PAGE_DIR_LLC', '/user/llc/');
+//合同会社設立LLC情報登録
+define('PAGE_DIR_LLC_INFO', '/user/llc/info/');
+//合同会社設立LLC情報登録[定款自治]
+define('PAGE_DIR_LLC_INFO_ARTICLE', '/user/llc/info/?article');
+//定款認証
+define('PAGE_DIR_LLC_ARTICLE', '/user/llc/article/');
+//各種申請書類 印刷
+define('PAGE_DIR_LLC_PDF', '/user/llc/pdf/');
+//PDF作成エラー(各種申請書類 印刷 エラー)
+define('PAGE_DIR_LLC_PDF_ERR', '/user/llc/pdf/error.php');
+// すべてお任せプランに変更
+define('PAGE_DIR_LLC_PLAN', '/user/llc/plan/');
+//オプションサービス
+define('PAGE_DIR_OPTION_SERVICE', '/user/option_service/');
+
+//検索
+define('PAGE_DIR_SEARCH', '/faq/search/');
+
+//管理者用
+//ユーザー一覧ページ
+define('PAGE_DIR_ADMIN_USER', '/admin/user/');
+//ページDIR---------------------------------------------------end
+
+
+//XML名-------------------------------------------------------start
+// ユーザー登録
+define('XML_NAME_REGIST', 'form_info_regist');
+//ユーザー情報
+define('XML_NAME_USER', 'form_info_user');
+//ユーザー情報(OEM・代理店制度用)
+define('XML_NAME_USER_OEM', 'form_info_user_oem');
+//ログイン情報
+define('XML_NAME_LOGIN', 'form_info_login');
+//ログインパスワード確認情報
+define('XML_NAME_LOGIN_REMIND', 'form_info_login_remind');
+
+//株式会社設立情報
+define('XML_NAME_CMP', 'form_info_cmp');
+//株式会社設立情報[商号(会社名)]
+define('XML_NAME_CMP_NAME', 'form_info_cmp_name');
+//株式会社設立情報[資本金・事業年度]
+define('XML_NAME_CMP_CAPITAL', 'form_info_cmp_capital');
+//株式会社設立情報[本店所在地]
+define('XML_NAME_CMP_ADDRESS', 'form_info_cmp_address');
+//株式会社設立情報[事業の目的]
+define('XML_NAME_CMP_PURPOSE', 'form_info_cmp_purpose');
+////株式会社設立情報[取締役]
+//define('XML_NAME_CMP_BOARD', 'form_info_cmp_board');
+//株式会社設立情報[役員構成・任期]
+define('XML_NAME_CMP_BOARD_BASE', 'form_info_cmp_board_base');
+//株式会社設立情報[取締役]
+define('XML_NAME_CMP_BOARD_NAME', 'form_info_cmp_board_name');
+//株式会社設立情報[発起人]
+define('XML_NAME_CMP_PROMOTER', 'form_info_cmp_promoter');
+//株式会社設立情報[出資金]
+define('XML_NAME_CMP_PROMOTER_INVESTMENT', 'form_info_cmp_promoter_investment');
+//株式会社設立情報[入力内容確認]
+define('XML_NAME_CMP_ALL', 'form_info_cmp_all');
+// すべてお任せプランに変更
+define('XML_NAME_CMP_PLAN', 'form_info_cmp_plan');
+
+//合同会社設立情報
+define('XML_NAME_LLC', 'form_info_llc');
+//合同会社設立情報[商号(会社名)]
+define('XML_NAME_LLC_NAME', 'form_info_llc_name');
+//合同会社設立情報[資本金・事業年度]
+define('XML_NAME_LLC_CAPITAL', 'form_info_llc_capital');
+//合同会社設立情報[本店所在地]
+define('XML_NAME_LLC_ADDRESS', 'form_info_llc_address');
+//合同会社設立情報[定款自治]
+define('XML_NAME_LLC_ARTICLE', 'form_info_llc_article');
+//合同会社設立情報[事業の目的]
+define('XML_NAME_LLC_PURPOSE', 'form_info_llc_purpose');
+//////合同会社設立情報[取締役]
+////define('XML_NAME_LLC_BOARD', 'form_info_llc_board');
+////合同会社設立情報[役員構成・任期]
+//define('XML_NAME_LLC_BOARD_BASE', 'form_info_llc_board_base');
+////合同会社設立情報[取締役]
+//define('XML_NAME_LLC_BOARD_NAME', 'form_info_llc_board_name');
+//合同会社設立情報[発起人]
+define('XML_NAME_LLC_PROMOTER', 'form_info_llc_promoter');
+//合同会社設立情報[出資金]
+define('XML_NAME_LLC_PROMOTER_INVESTMENT', 'form_info_llc_promoter_investment');
+//合同会社設立情報[入力内容確認]
+define('XML_NAME_LLC_ALL', 'form_info_llc_all');
+// すべてお任せプランに変更
+define('XML_NAME_LLC_PLAN', 'form_info_llc_plan');
+
+//法人印注文情報
+define('XML_NAME_SEAL', 'form_info_seal');
+
+//法人印注文情報[印鑑]
+define('XML_NAME_SEAL_SET', 'form_info_seal_set');
+//法人印注文情報[印鑑](確認画面用)
+define('XML_NAME_SEAL_SET_4_CONFIRM', 'form_info_seal_set_4_confirm');
+
+
+//法人印注文情報[印影]
+define('XML_NAME_SEAL_IMPRINT', 'form_info_seal_imprint');
+//法人印注文情報[会社名・お届け先]
+define('XML_NAME_SEAL_NAME', 'form_info_seal_name');
+//法人印注文情報[入力内容確認]
+define('XML_NAME_SEAL_ALL', 'form_info_seal_all');
+
+
+//お支払い報告情報
+define('XML_NAME_PAY', 'form_info_pay');
+//ご利用料金のお支払い情報
+define('XML_NAME_BUY', 'form_info_buy');
+
+//定款認証情報
+define('XML_NAME_ARTICLE', 'form_info_article');
+//定款認証情報(合同会社用)
+define('XML_NAME_ARTICLE_LLC', 'form_info_article_llc');
+
+//登録解除
+define('XML_NAME_CANCEL', 'form_info_cancel');
+
+//お問い合わせ情報
+define('XML_NAME_INQ', 'form_info_inq');
+
+//相互リンク情報
+define('XML_NAME_LINK', 'form_info_link');
+
+//XML名-------------------------------------------------------end
+
+//セッションキー----------------------------------------------start
+//ログインしたユーザー情報を保持する。
+define('SID_LOGIN_USER_INFO', 'SID_LOGIN_USER_INFO');
+
+//編集対象の会社IDを保持する。array('会社タイプID' => xx)
+define('SID_LOGIN_USER_COMPANY', 'SID_LOGIN_USER_COMPANY');
+
+
+//法人印注文情報を保持する。
+define('SID_SEAL_INFO', 'SID_SEAL_INFO');
+
+
+
+
+
+//ユーザー登録ページへの遷移元ページ
+define('SID_USER_FROM_PAGE_ID', 'SID_USER_FROM_PAGE_ID');
+
+//法人印注文ページへの遷移元ページ
+define('SID_SEAL_FROM_PAGE_ID', 'SID_SEAL_FROM_PAGE_ID');
+
+//お支払い報告ページへの遷移元ページ
+define('SID_PAY_FROM_PAGE_ID', 'SID_PAY_FROM_PAGE_ID');
+
+//登録解除ページへの遷移元ページ
+define('SID_CANCEL_FROM_PAGE_ID', 'SID_CANCEL_FROM_PAGE_ID');
+
+//お問い合わせページへの遷移元ページ
+define('SID_INQ_FROM_PAGE_ID', 'SID_INQ_FROM_PAGE_ID');
+
+
+
+//【ユーザー一覧用】
+//検索条件を保存する。
+define('SID_SRCH_USER_CONDITION', 'SID_SRCH_USER_CONDITION');
+//検索結果一覧を保存する。
+define('SID_SRCH_USER_LIST', 'SID_SRCH_USER_LIST');
+//検索件数を設定する。
+define('SID_SRCH_USER_COUNT', 'SID_SRCH_USER_COUNT');
+//選択ページ
+define('SID_SRCH_USER_PAGE', 'SID_SRCH_USER_PAGE');
+//ソート
+define('SID_SRCH_USER_SORT', 'SID_SRCH_USER_SORT');
+
+
+//【ユーザー一覧用】
+//選択されたページの前後に表示するページ数
+define('USER_PAGE_LINK_LIMIT', 5);
+//1ページの表示件数
+define('USER_PAGE_LINK_SHOW_NUM_OF_ONE_PAGE', 30);
+//「前へ」のリンクに使用する文字列
+define('USER_PAGE_LINK_FRONT_TEXT', '前へ');
+//「後ろへ」のリンクに使用する文字列
+define('USER_PAGE_LINK_REAR_TEXT', '次へ');
+//ページの左側に表示するメッセージ("検索ページ："など…)
+define('USER_PAGE_LINK_TOP_MESSAGE', 'ページ：&nbsp;');
+//選択されたページに表示されている何件潤ｵ何件を表示するメッセージ("%s件〜%s件"など…%sの部分が検索件数で置換される。)
+define('USER_PAGE_LINK_ACTIVE_PAGE_MESSAGE', '&nbsp;&nbsp;%s件〜%s件表示');
+//検索件数を表示するメッセージ("&nbsp;検索件数：%s"など…%sの部分が検索件数で置換される。)
+define('USER_PAGE_LINK_COUNT_MESSAGE', '&nbsp;／&nbsp;全%s件中');
+
+//セッションキー----------------------------------------------end
+
+//ページID----------------------------------------------------start
+//ユーザーページ
+define('PAGE_ID_USER', 'P_ID_USER');
+
+//合同会社設立LLCメニュー
+define('PAGE_ID_LLC', 'P_ID_LLC');
+
+//ページID----------------------------------------------------end
+
+
+//ユーザーテーブル"tbl_user"で使用する権限↓↓↓
+//権限--------------------------------------------------------start
+//WOOROM権限用タイトル
+define('CMN_TITLE_WOOROM', '(WOOROM権限)');
+
+//権限無し
+define('AUTH_NON', 1);
+//クライアント管理者権限
+define('AUTH_CLIENT', 2);
+//WOOROM権限
+define('AUTH_WOOROM', 999);
+
+define('NOLOGIN_USER_ID', -1);
+
+//(名称)
+//権限無し
+define('AUTH_NON_NAME', '権限無し');
+//権限無し
+define('AUTH_CLIENT_NAME', 'クライアント管理者権限');
+//権限無し
+define('AUTH_WOOROM_NAME', 'WOOROM権限');
+//権限--------------------------------------------------------end
+
+
+//定数--------------------------------------------------------start
+//削除フラグ
+//未削除
+define('DELETE_FLAG_NO', '0');
+//削除済
+define('DELETE_FLAG_YES', '1');
+
+//削除フラグ(名称)
+//未削除
+//define('DELETE_FLAG_NO_NAME', '&nbsp;');
+define('DELETE_FLAG_NO_NAME', '未削除');
+//削除済
+define('DELETE_FLAG_YES_NAME', '削除済');
+
+//削除フラグ(名称)→公開・非公開として使用している場合
+//未削除
+define('DELETE_FLAG_NO_NAME_2', '');
+//削除済
+define('DELETE_FLAG_YES_NAME_2', '削除済');
+//フォーマット
+define('DELETE_FLAG_NO_NAME_FORMAT_2', '%s');
+define('DELETE_FLAG_YES_NAME_FORMAT_2', '(%s)');
+
+
+//よくある質問フラグ
+//「よくある質問」に表示しない。
+define('FREQUENTLY_FLAG_NO', '0');
+//「よくある質問」に表示する。
+define('FREQUENTLY_FLAG_YES', '1');
+
+//よくある質問フラグ(名称)
+//「よくある質問」に表示する。
+define('FREQUENTLY_FLAG_YES_NAME', 'よくあるご質問');
+
+
+//電子公証サービスフラグ
+//{0:電子公証サービス無し/1:有り}
+define('ELECTRON_FLAG_NO', '0');
+define('ELECTRON_FLAG_YES', '1');
+
+
+//システム利用期限
+//単位:日{null:期間制限無}
+define('SYSTEM_USE_DEADLINE', 93);//93=31日*3ヶ月
+
+//「ご利用料金のお支払い」返信メール用
+//コメント
+define('SYSTEM_COURSE_COMMENT', "※お任せコースは、地域により価格が異なります。未対応の地域があります。\n地域を確認後、価格と対応状況をご連絡いたします。");
+
+
+//設立日設定期限
+//単位:日{null:期間制限無}
+define('FOUND_DAY_DEADLINE', 5);//本日より20日以降の設立日ならOK
+
+//登録免許税額(単位:円)
+//株式会社
+define('LICENSE_TAX_CMP', 150000);
+//合同会社
+define('LICENSE_TAX_LLC', 60000);
+
+
+//詳細ページのディレクトリフォーマット
+define('FAQ_DIR_FORMAT_1', 'faq');
+define('FAQ_DIR_FORMAT_2', '%05d');
+define('FAQ_DIR_FORMAT', FAQ_DIR_FORMAT_1.FAQ_DIR_FORMAT_2);
+
+//トップページのカテゴリー毎に表示する件数
+define('FAQ_TOP_CATEGORY_NUM', 4);
+
+
+//定数--------------------------------------------------------end
+
+//マスタID----------------------------------------------------start
+//会社タイプマスタ
+//1	株式会社
+define('MST_COMPANY_TYPE_ID_CMP', 1);
+//2	合同会社
+define('MST_COMPANY_TYPE_ID_LLC', 2);
+
+//プランマスタ
+//1	通常プラン
+define('MST_PLAN_ID_NORMAL', 1);
+//2	スタンダードパートナープラン
+define('MST_PLAN_ID_STANDARD', 2);
+//3	プラチナパートナープラン
+define('MST_PLAN_ID_PLATINUM', 3);
+
+//出資形態マスタ
+//1	現金のみ
+define('MST_INVESTMENT_SHAPE_ID_CASH', 1);
+//2	現物出資のみ
+define('MST_INVESTMENT_SHAPE_ID_INKIND', 2);
+//3	現金＋現物
+define('MST_INVESTMENT_SHAPE_ID_CASH_INKIND', 3);
+
+//出資タイプマスタ
+//1	現金
+define('MST_INVESTMENT_TYPE_ID_CASH', 1);
+//2	現物
+define('MST_INVESTMENT_TYPE_ID_INKIND', 2);
+
+//人格種別マスタ
+//1	個人
+define('MST_PERSONAL_TYPE_ID_PERSONAL', 1);
+//2	法人(株式会社・有限会社のみ)
+define('MST_PERSONAL_TYPE_ID_CORPORATION', 2);
+
+//役員構成マスタ
+//1	取締役会を設置しない　役員1〜10人で設立
+define('MST_BOARD_FORMATION_ID_1_10', 1);
+//2	取締役会を設置する　役員3人と監査役1人で設立
+define('MST_BOARD_FORMATION_ID_3_1', 2);
+
+//役職マスタ
+//1	代表取締役
+define('MST_POST_ID_REP_DIRECTOR', 1);
+//2	取締役
+define('MST_POST_ID_DIRECTOR', 2);
+//3	監査役
+define('MST_POST_ID_INSPECTOR', 3);
+
+//業務執行マスタ
+//1	業務執行社員になる
+define('MST_BUSINESS_EXECUTION_ID_YES', 1);
+//2	業務執行社員にならない(出資のみ)
+define('MST_BUSINESS_EXECUTION_ID_NO', 2);
+
+//代表社員マスタ
+//1	代表社員になる
+define('MST_REPRESENTATIVE_PARTNER_ID_YES', 1);
+//2	代表社員にならない
+define('MST_REPRESENTATIVE_PARTNER_ID_NO', 2);
+
+
+//定款認証コースマスタ
+//1	[書面認証]従来型の紙ベースコース(自分が定款認証＋自分が公証役場に行く)
+define('MST_ARTICLE_COURSE_ID_NORMAL', 1);
+//2	[電子認証]スタンダードコース(行政書士が電子定款認証を代行＋自分が公証役場に行く)
+define('MST_ARTICLE_COURSE_ID_STANDARD', 2);
+//3	[電子認証]お任せコース(行政書士が電子定款認証を代行＋行政書士が公証役場に行く)
+define('MST_ARTICLE_COURSE_ID_ENTRUST', 3);
+
+//システムコースマスタ
+//1	1	[株式会社] 株式会社設立 (システム利用料金)
+define('MST_SYSTEM_COURSE_ID_CMP', 1);
+//2	2	[合同会社] 合同会社設立LLC (システム利用料金)
+define('MST_SYSTEM_COURSE_ID_LLC', 2);
+//3	1	[株式会社] 電子定款スタンダードコース
+define('MST_SYSTEM_COURSE_ID_CMP_STANDARD', 3);
+//4	1	[株式会社] 電子定款お任せコース
+define('MST_SYSTEM_COURSE_ID_CMP_ENTRUST', 4);
+//5	1	[株式会社] 現物出資オプション
+define('MST_SYSTEM_COURSE_ID_CMP_INKIND', 5);
+//6	2	[合同会社] 電子定款スタンダードコース
+define('MST_SYSTEM_COURSE_ID_LLC_STANDARD', 6);
+//7	2	[合同会社] 電子定款お任せコース
+define('MST_SYSTEM_COURSE_ID_LLC_ENTRUST', 7);
+//8	2	[合同会社] 現物出資オプション
+define('MST_SYSTEM_COURSE_ID_LLC_INKIND', 8);
+
+//スタンダードパートナープラン
+//11	1	[スタンダードパートナープラン][株式会社] 株式会社設立 (システム利用料金)
+define('MST_SYSTEM_COURSE_ID_STANDARD_CMP', 11);
+//12	2	[スタンダードパートナープラン][合同会社] 合同会社設立LLC (システム利用料金)
+define('MST_SYSTEM_COURSE_ID_STANDARD_LLC', 12);
+//13	1	[スタンダードパートナープラン][株式会社] 現物出資オプション
+define('MST_SYSTEM_COURSE_ID_STANDARD_CMP_INKIND', 13);
+//14	2	[スタンダードパートナープラン][合同会社] 現物出資オプション
+define('MST_SYSTEM_COURSE_ID_STANDARD_LLC_INKIND', 14);
+
+//プラチナパートナープラン
+//15	1	[プラチナパートナープラン][株式会社] 株式会社設立 (システム利用料金)
+define('MST_SYSTEM_COURSE_ID_PLATINUM_CMP', 15);
+//16	2	[プラチナパートナープラン][合同会社] 合同会社設立LLC (システム利用料金)
+define('MST_SYSTEM_COURSE_ID_PLATINUM_LLC', 16);
+//17	1	[プラチナパートナープラン][株式会社] 現物出資オプション
+define('MST_SYSTEM_COURSE_ID_PLATINUM_CMP_INKIND', 17);
+//18	2	[プラチナパートナープラン][合同会社] 現物出資オプション
+define('MST_SYSTEM_COURSE_ID_PLATINUM_LLC_INKIND', 18);
+
+
+
+//支払方法マスタ
+//1	銀行振込
+define('MST_PAY_MEANS_ID_BANK', 1);
+//2	クレジットカード
+define('MST_PAY_MEANS_ID_CARD', 2);
+
+//支払状況マスタ
+//1	未入金
+define('MST_PAY_STATUS_ID_NON', 1);
+//2	入金済
+define('MST_PAY_STATUS_ID_OK', 2);
+//3	キャンセル
+define('MST_PAY_STATUS_ID_CANCEL', 3);
+//4	期限切れ
+define('MST_PAY_STATUS_ID_END', 4);
+
+
+//定款業務執行マスタ
+//1	全員の一致
+define('MST_ARTICLE_BUSINESS_EXECUTION_ID_ALL', 1);
+//2	過半数の一致
+//3	3分の2以上の一致
+
+//定款分配マスタ
+//1	その出資額によるものとする
+//2	各社員平等に分配するものとする
+//3	総社員の同意により、出資額と異なる割合によることができる
+define('MST_ARTICLE_SHARE_ID_ALL', 3);
+//4	代表社員がこれを定める
+
+//定款変更マスタ
+//1	社員全員の一致をもって
+define('MST_ARTICLE_CHANGE_ID_ALL', 1);
+//2	社員の3分の2以上の一致をもって
+//3	社員の過半数の一致をもって
+//4	業務執行社員全員の一致をもって
+//5	業務執行社員の3分の2以上の一致をもって
+//6	業務執行社員の過半数の一致をもって
+//7	代表社員が
+
+
+//都道府県マスタ
+//海外
+define('MST_PREF_ID_OVERSEAS', 48);
+
+
+//会計事務所の無料案内マスタ
+//受ける
+define('MST_ACCOUNT_FREE_GUIDANCE_ID_YES', 1);
+//受けない
+define('MST_ACCOUNT_FREE_GUIDANCE_ID_NO', 2);
+
+//オプションマスタ
+//希望する
+define('MST_OPTION_ID_YES', 1);
+//希望しない
+define('MST_OPTION_ID_NO', 2);
+//マスタID----------------------------------------------------end
+
+//PDF作成関連-------------------------------------------------start
+//委任状
+//動作モード
+//発起人の一人が代理人として登記申請に行く場合
+define('PDF_MODE_ININJO_PROMOTER', 1);
+//発起人以外の第3者が代理人として登記申請に行く場合
+define('PDF_MODE_ININJO_OTHER', 2);
+
+
+//印鑑届出書
+//動作モード
+//代表取締役が登記申請に行く場合
+define('PDF_MODE_INKAN_DIRECTOR', 1);
+//代理人が登記申請に行く場合
+define('PDF_MODE_INKAN_OTHER', 2);
+//PDF作成関連-------------------------------------------------end
+
+////////////////////////////////////////  ↑↑↑使用    ↓↓↓未使用
+
+
+//セッションキー----------------------------------------------start
+//管理画面にログインした管理者情報を保持する。
+define('SID_ADMIN_LOGIN_INFO', 'SID_ADMIN_LOGIN_INFO');
+
+//【問合せ一覧用】
+//検索条件を保存する。
+define('SID_SRCH_INQ_CONDITION', 'SID_SRCH_INQ_CONDITION');
+//検索結果一覧を保存する。
+define('SID_SRCH_INQ_LIST', 'SID_SRCH_INQ_LIST');
+//検索件数を設定する。
+define('SID_SRCH_INQ_COUNT', 'SID_SRCH_INQ_COUNT');
+//選択ページ
+define('SID_SRCH_INQ_ACTIVE_PAGE', 'SID_SRCH_INQ_ACTIVE_PAGE');
+
+
+//【商品一覧用】
+//検索条件を保存する。
+define('SID_SRCH_ITM_CONDITION', 'SID_SRCH_ITM_CONDITION');
+//検索結果一覧を保存する。
+define('SID_SRCH_ITM_LIST', 'SID_SRCH_ITM_LIST');
+//検索件数を設定する。
+define('SID_SRCH_ITM_COUNT', 'SID_SRCH_ITM_COUNT');
+//選択ページ
+define('SID_SRCH_ITM_ACTIVE_PAGE', 'SID_SRCH_ITM_ACTIVE_PAGE');
+
+
+
+
+
+//【請求額一覧用】
+//検索条件を保存する。
+define('SID_PRICE_INQ_CONDITION', 'SID_PRICE_INQ_CONDITION');
+
+
+
+
+
+
+
+
+//マスタ更新画面の動作モードを保存する。{1:単独表示/2:他画面経由の表示}
+define('SID_MST_MODE', 'SID_MST_MODE');
+//情報更新画面の動作モードを保存する。{1:単独表示/2:他画面経由の表示}
+define('SID_INFO_MODE', 'SID_INFO_MODE');
+
+//情報更新画面への遷移元ページ
+define('SID_INFO_FROM_PAGE_ID', 'SID_INFO_FROM_PAGE_ID');
+
+
+
+//パンくずリストを保存する。(現在の位置を保存する。)
+define('SID_BREADCRUMBS', 'SID_BREADCRUMBS');
+
+
+//【カート用】
+//カートに入れた商品情報を保存する。
+define('SID_CART', 'SID_CART');
+//カートのお客様の個人情報を保存する。
+define('SID_CART_INFO', 'SID_CART_INFO');
+
+
+//【PDF作成用】
+//エラーメッセージを保存する。
+define('SID_PDF_ERR_MSG', 'SID_PDF_ERR_MSG');
+
+
+//セッションキー----------------------------------------------end
+
+//ページリンク関連--------------------------------------------start
+//【基本】
+//選択されたページの前後に表示するページ数
+define('PAGE_LINK_LIMIT', 5);//5
+//1ページの表示件数
+define('PAGE_LINK_SHOW_NUM_OF_ONE_PAGE', 30);//30
+//「前へ」のリンクに使用する文字列
+define('PAGE_LINK_FRONT_TEXT', '<');
+//「後ろへ」のリンクに使用する文字列
+define('PAGE_LINK_REAR_TEXT', '>');
+//ページの左側に表示するメッセージ("検索ページ："など…)
+define('PAGE_LINK_TOP_MESSAGE', '検索ページ：&nbsp;');
+//選択されたページに表示されている何件潤ｵ何件を表示するメッセージ("%s件〜%s件"など…%sの部分が検索件数で置換される。)
+define('PAGE_LINK_ACTIVE_PAGE_MESSAGE', '&nbsp;&nbsp;%s件〜%s件');
+//検索件数を表示するメッセージ("&nbsp;検索件数：%s"など…%sの部分が検索件数で置換される。)
+define('PAGE_LINK_COUNT_MESSAGE', '&nbsp;(全&nbsp;%s件)');
+
+
+
+//【問合せ一覧用】
+//選択されたページの前後に表示するページ数
+define('INQ_PAGE_LINK_LIMIT', PAGE_LINK_LIMIT);
+//1ページの表示件数
+define('INQ_PAGE_LINK_SHOW_NUM_OF_ONE_PAGE', PAGE_LINK_SHOW_NUM_OF_ONE_PAGE);
+//「前へ」のリンクに使用する文字列
+define('INQ_PAGE_LINK_FRONT_TEXT', PAGE_LINK_FRONT_TEXT);
+//「後ろへ」のリンクに使用する文字列
+define('INQ_PAGE_LINK_REAR_TEXT', PAGE_LINK_REAR_TEXT);
+//ページの左側に表示するメッセージ("検索ページ："など…)
+define('INQ_PAGE_LINK_TOP_MESSAGE', PAGE_LINK_TOP_MESSAGE);
+//選択されたページに表示されている何件潤ｵ何件を表示するメッセージ("%s件〜%s件"など…%sの部分が検索件数で置換される。)
+define('INQ_PAGE_LINK_ACTIVE_PAGE_MESSAGE', PAGE_LINK_ACTIVE_PAGE_MESSAGE);
+//検索件数を表示するメッセージ("&nbsp;検索件数：%s"など…%sの部分が検索件数で置換される。)
+define('INQ_PAGE_LINK_COUNT_MESSAGE', PAGE_LINK_COUNT_MESSAGE);
+
+
+//【商品一覧用】
+//選択されたページの前後に表示するページ数
+define('ITM_PAGE_LINK_LIMIT', PAGE_LINK_LIMIT);
+//1ページの表示件数
+define('ITM_PAGE_LINK_SHOW_NUM_OF_ONE_PAGE', PAGE_LINK_SHOW_NUM_OF_ONE_PAGE);
+//「前へ」のリンクに使用する文字列
+define('ITM_PAGE_LINK_FRONT_TEXT', PAGE_LINK_FRONT_TEXT);
+//「後ろへ」のリンクに使用する文字列
+define('ITM_PAGE_LINK_REAR_TEXT', PAGE_LINK_REAR_TEXT);
+//ページの左側に表示するメッセージ("検索ページ："など…)
+define('ITM_PAGE_LINK_TOP_MESSAGE', PAGE_LINK_TOP_MESSAGE);
+//選択されたページに表示されている何件潤ｵ何件を表示するメッセージ("%s件〜%s件"など…%sの部分が検索件数で置換される。)
+define('ITM_PAGE_LINK_ACTIVE_PAGE_MESSAGE', PAGE_LINK_ACTIVE_PAGE_MESSAGE);
+//検索件数を表示するメッセージ("&nbsp;検索件数：%s"など…%sの部分が検索件数で置換される。)
+define('ITM_PAGE_LINK_COUNT_MESSAGE', PAGE_LINK_COUNT_MESSAGE);
+
+
+
+//ページリンク関連--------------------------------------------end
+
+
+
+//打診メールテンプレート--------------------------------------start
+//"件名"設定ファイル
+define('MAIL_TEMP_SUBJECT_FILE', dirname(__FILE__).'/temp_mail/subject_%s.txt');
+//"本文"設定ファイル
+define('MAIL_TEMP_BODY_FILE', dirname(__FILE__).'/temp_mail/body_%s.txt');
+//打診メールテンプレート--------------------------------------end
+
+////ロゴ紹介ページ関連------------------------------------------start
+////ロゴ情報を設定するXMLファイルへのパス
+//define('LOGO_INFO_XML', '../common/logo/logo.xml');
+////XMLのキー値
+//define('LOGO_INFO_XML_KEY', 'logo');
+//
+////ロゴ画像(大)の格納ディレクトリ
+//define('LOGO_BIG_DIR', '../img/big_logo/');
+////ロゴ画像(小)の格納ディレクトリ
+//define('LOGO_BIG_DIR', '../img/small_logo/');
+//
+////1ページで表示するロゴ数
+//define('LOGO_SHOW_NUM', 16);
+////ロゴ紹介ページ関連------------------------------------------end
+//
+
+////add start 2007/04/26 d.ishikawa 「サービスについて」削除
+////問合せフォームの「サービスについて」の表示・非表示フラグ
+////{true:表示/false:非表示}
+//define('INQUIRY_SERVICE_FLAG', false);
+////add end 2007/04/26 d.ishikawa 「サービスについて」削除
+
+
+////サイトURL---------------------------------------------------start
+////Copyright
+//define('SITE_URL', 'http://www.siba-tama.com');
+////サイトURL---------------------------------------------------end
+//
+////各ページURL-------------------------------------------------start
+////仔犬ページ
+//define('URL_PUPPY', SITE_URL.'/puppy/index.php');
+////お問い合わせページ
+//define('URL_INQUIRY', SITE_URL.'/inquiry/index.php');
+////仔犬検索ページ
+//define('URL_PUPPY_SEARCH', SITE_URL.'/search/index.php');
+////各ページURL-------------------------------------------------end
+//
+//
+
+////管理者テーブル"tbl_manager"で使用する権限↓↓↓
+////権限--------------------------------------------------------start
+////WOOROM権限
+//define('AUTH_WOOROM', 999);
+////WOOROM権限用タイトル
+//define('CMN_TITLE_WOOROM', '(WOOROM権限)');
+//
+////権限無し
+//define('AUTH_NON', 1);
+////クライアント管理者権限
+//define('AUTH_CLIENT', 2);
+////権限--------------------------------------------------------end
+//
+////顧客テーブル"tbl_user"で使用する権限↓↓↓
+////顧客権限----------------------------------------------------start
+////権限無し
+//define('USER_AUTH_NON', 1);
+//
+////(名称)
+////権限無し
+//define('USER_AUTH_NON_NAME', '権限無し');
+////顧客権限----------------------------------------------------end
+
+
+//
+////セッションキー----------------------------------------------start
+////ログインしたブリーダーIDを保持する。
+//define('SID_LOGIN_BREEDER_ID', 'SID_LOGIN_BREEDER_ID');
+//
+////仔犬ページ用
+////選択された仔犬ID
+//define('SID_PUPPY_ID', 'SID_PUPPY_ID');
+////選択ページ
+//define('SID_PUPPY_ACTIVE_PAGE', 'SID_PUPPY_ACTIVE_PAGE');
+//
+////仔犬検索ページ関連
+////検索条件
+//define('SID_SRCH_PUPPY_CONDITION', 'SID_SRCH_PUPPY_CONDITION');
+////検索結果
+//define('SID_SRCH_PUPPY_LIST', 'SID_SRCH_PUPPY_LIST');
+////検索件数を設定する。
+//define('SID_SRCH_PUPPY_LIST_COUNT', 'SID_SRCH_PUPPY_LIST_COUNT');
+////選択ページ
+//define('SID_SRCH_PUPPY_ACTIVE_PAGE', 'SID_SRCH_PUPPY_ACTIVE_PAGE');
+//
+//
+////セッションキー----------------------------------------------end
+
+////セッションキー----------------------------------------------start
+////問合せ情報を保持する。
+//define('SID_INQUIRY_INFO', 'SID_INQUIRY_INFO');
+////セッションキー----------------------------------------------end
+
+//画像アップロード関連----------------------------------------start
+//アップロード先カレントディレクトリ
+define('FILE_DIR_BASE', dirname(dirname(dirname(__FILE__))).'/img/sys');
+define('FILE_URL_BASE', URL.'/img/sys');
+define('FILE_SSL_BASE', SSL_URL.'/img/sys');
+
+
+//【共通】----start
+//アップロードファイルのファイル名のフォーマット
+//define('FILE_NAME_FORMAT', '%03d');				//sprintfのフォーマット
+define('FILE_NAME_FORMAT', 'Ymd_His');				//dateのフォーマット
+//一時保存フォルダ名のフォーマット
+define('FILE_TEMP_DIR_NAME_FORMAT', 'Ymd_His');	//dateのフォーマット
+//本番用保存フォルダ名のフォーマット
+define('FILE_DIR_NAME_FORMAT', '%03d');			//sprintfのフォーマット
+
+//管理画面に表示用するときの画像の長辺の最大サイズ
+define('FILE_IMG_PX_SIZE_4_ADMIN', 100);
+
+//一時保存フォルダ内のゴミファイルを掃除する期間？(単位：日) {例)1日前のファイルを削除する。}
+define('CLEAN_DAY_4_FILE_DIR_IMG_TMP', 1);
+
+//【共通】----end
+
+//【商品画像用】----start
+define('FILE_DIR_ITEM_IMG', FILE_DIR_BASE.'/item');
+define('FILE_DIR_ITEM_IMG_TMP', FILE_DIR_BASE.'/_temp_item');
+
+define('FILE_URL_ITEM_IMG', FILE_URL_BASE.'/item');
+define('FILE_URL_ITEM_IMG_TMP', FILE_URL_BASE.'/_temp_item');
+
+define('FILE_SSL_ITEM_IMG', FILE_SSL_BASE.'/item');
+define('FILE_SSL_ITEM_IMG_TMP', FILE_SSL_BASE.'/_temp_item');
+
+//サムネイル用の画像を縮小するときの辺のサイズ
+define('FILE_ITEM_IMG_PX_SIZE_4_THUMBNAIL_WIDTH', 200);
+define('FILE_ITEM_IMG_PX_SIZE_4_THUMBNAIL_HEIGHT', 200);
+//【商品画像用】----end
+
+//【ボトル画像用】----start
+define('FILE_DIR_BOTTLE_IMG', FILE_DIR_BASE.'/bottle');
+define('FILE_DIR_BOTTLE_IMG_TMP', FILE_DIR_BASE.'/_temp_bottle');
+
+define('FILE_URL_BOTTLE_IMG', FILE_URL_BASE.'/bottle');
+define('FILE_URL_BOTTLE_IMG_TMP', FILE_URL_BASE.'/_temp_bottle');
+
+define('FILE_SSL_BOTTLE_IMG', FILE_SSL_BASE.'/bottle');
+define('FILE_SSL_BOTTLE_IMG_TMP', FILE_SSL_BASE.'/_temp_bottle');
+
+//サムネイル用の画像を縮小するときの辺のサイズ
+define('FILE_BOTTLE_IMG_PX_SIZE_4_THUMBNAIL_WIDTH', 200);
+define('FILE_BOTTLE_IMG_PX_SIZE_4_THUMBNAIL_HEIGHT', 200);
+//【ボトル画像用】----end
+
+//【彫刻パターン画像用】----start
+define('FILE_DIR_DESIGN_IMG', FILE_DIR_BASE.'/design');
+define('FILE_DIR_DESIGN_IMG_TMP', FILE_DIR_BASE.'/_temp_design');
+
+define('FILE_URL_DESIGN_IMG', FILE_URL_BASE.'/design');
+define('FILE_URL_DESIGN_IMG_TMP', FILE_URL_BASE.'/_temp_design');
+
+define('FILE_SSL_DESIGN_IMG', FILE_SSL_BASE.'/design');
+define('FILE_SSL_DESIGN_IMG_TMP', FILE_SSL_BASE.'/_temp_design');
+
+//サムネイル用の画像を縮小するときの辺のサイズ
+define('FILE_DESIGN_IMG_PX_SIZE_4_THUMBNAIL_WIDTH', 150);
+define('FILE_DESIGN_IMG_PX_SIZE_4_THUMBNAIL_HEIGHT', 176);
+//【彫刻パターン画像用】----end
+
+//【彫刻文字(和字)画像用】----start
+define('FILE_DIR_CHARACTER_J_IMG', FILE_DIR_BASE.'/character_j');
+define('FILE_DIR_CHARACTER_J_IMG_TMP', FILE_DIR_BASE.'/_temp_character_j');
+
+define('FILE_URL_CHARACTER_J_IMG', FILE_URL_BASE.'/character_j');
+define('FILE_URL_CHARACTER_J_IMG_TMP', FILE_URL_BASE.'/_temp_character_j');
+
+define('FILE_SSL_CHARACTER_J_IMG', FILE_SSL_BASE.'/character_j');
+define('FILE_SSL_CHARACTER_J_IMG_TMP', FILE_SSL_BASE.'/_temp_character_j');
+
+//サムネイル用の画像を縮小するときの辺のサイズ
+define('FILE_CHARACTER_J_IMG_PX_SIZE_4_THUMBNAIL_WIDTH', 214);
+define('FILE_CHARACTER_J_IMG_PX_SIZE_4_THUMBNAIL_HEIGHT', 18);
+
+//管理画面に表示用するときの画像の長辺の最大サイズ
+define('FILE_CHARACTER_J_IMG_PX_SIZE_4_ADMIN', 214);
+
+//【彫刻文字(和字)画像用】----end
+
+//【彫刻文字(英字)画像用】----start
+define('FILE_DIR_CHARACTER_E_IMG', FILE_DIR_BASE.'/character_e');
+define('FILE_DIR_CHARACTER_E_IMG_TMP', FILE_DIR_BASE.'/_temp_character_e');
+
+define('FILE_URL_CHARACTER_E_IMG', FILE_URL_BASE.'/character_e');
+define('FILE_URL_CHARACTER_E_IMG_TMP', FILE_URL_BASE.'/_temp_character_e');
+
+define('FILE_SSL_CHARACTER_E_IMG', FILE_SSL_BASE.'/character_e');
+define('FILE_SSL_CHARACTER_E_IMG_TMP', FILE_SSL_BASE.'/_temp_character_e');
+
+//サムネイル用の画像を縮小するときの辺のサイズ
+define('FILE_CHARACTER_E_IMG_PX_SIZE_4_THUMBNAIL_WIDTH', 214);
+define('FILE_CHARACTER_E_IMG_PX_SIZE_4_THUMBNAIL_HEIGHT', 18);
+
+//管理画面に表示用するときの画像の長辺の最大サイズ
+define('FILE_CHARACTER_E_IMG_PX_SIZE_4_ADMIN', 214);
+
+//【彫刻文字(英字)画像用】----end
+
+
+
+//１枚のアップロードで可能なサイズ
+define('MAX_SIZE_OF_IMG', 2097152);
+//画像の長辺の最大サイズ
+define('MAX_IMG_PX_SIZE', 1000);
+//画像アップロード関連----------------------------------------end
+
+//システム管理をする画像関連----------------------------------start
+define('FILE_URL_SSL_BASE', URL.'/img/sys');
+
+
+//サブタイトル
+define('IMG_URL_SUBTITLE', FILE_URL_BASE.'/subtitle');
+define('IMG_SSL_SUBTITLE', FILE_SSL_BASE.'/subtitle');
+define('IMG_NAME_FORMAT_SUBTITLE', '%03d.jpg');			//sprintfのフォーマット
+
+//カテゴリー
+define('IMG_URL_CATEGORY', FILE_URL_BASE.'/category');
+define('IMG_SSL_CATEGORY', FILE_SSL_BASE.'/category');
+define('IMG_NAME_FORMAT_CATEGORY', '%03d.jpg');			//sprintfのフォーマット
+
+//目的
+define('IMG_URL_PURPOSE', FILE_URL_BASE.'/purpose');
+define('IMG_SSL_PURPOSE', FILE_SSL_BASE.'/purpose');
+define('IMG_NAME_FORMAT_PURPOSE', '%03d.jpg');			//sprintfのフォーマット
+
+//イベント
+define('IMG_URL_EVENT', FILE_URL_BASE.'/event');
+define('IMG_SSL_EVENT', FILE_SSL_BASE.'/event');
+define('IMG_NAME_FORMAT_EVENT', '%03d.jpg');			//sprintfのフォーマット
+
+
+////デザイン
+//define('IMG_URL_DESIGN', FILE_URL_BASE.'/design');
+//define('IMG_SSL_DESIGN', FILE_SSL_BASE.'/design');
+//define('IMG_NAME_FORMAT_DESIGN', '%03d.gif');			//sprintfのフォーマット
+
+////文字(和)
+//define('IMG_URL_CHARACTER_J', FILE_URL_BASE.'/font/j');
+//define('IMG_SSL_CHARACTER_J', FILE_SSL_BASE.'/font/j');
+//define('IMG_NAME_FORMAT_CHARACTER_J', '%03d.gif');			//sprintfのフォーマット
+
+////文字(英)
+//define('IMG_URL_CHARACTER_E', FILE_URL_BASE.'/font/e');
+//define('IMG_SSL_CHARACTER_E', FILE_SSL_BASE.'/font/e');
+//define('IMG_NAME_FORMAT_CHARACTER_E', '%03d.gif');			//sprintfのフォーマット
+
+
+
+//システム管理をする画像関連----------------------------------end
+
+
+
+
+//定数--------------------------------------------------------start
+////削除フラグ
+////未削除
+//define('DELETE_FLAG_NO', '0');
+////削除済
+//define('DELETE_FLAG_YES', '1');
+//
+////削除フラグ(名称)
+////未削除
+////define('DELETE_FLAG_NO_NAME', '&nbsp;');
+//define('DELETE_FLAG_NO_NAME', '未削除');
+////削除済
+//define('DELETE_FLAG_YES_NAME', '削除済');
+//
+////削除フラグ(名称)→公開・非公開として使用している場合
+////未削除
+//define('DELETE_FLAG_NO_NAME_2', '');
+////削除済
+//define('DELETE_FLAG_YES_NAME_2', '削除済');
+////フォーマット
+//define('DELETE_FLAG_NO_NAME_FORMAT_2', '%s');
+//define('DELETE_FLAG_YES_NAME_FORMAT_2', '(%s)');
+
+
+
+//掲載フラグ
+//掲載する
+define('SHOW_FLAG_YES', '0');
+//掲載しない
+define('SHOW_FLAG_NO', '1');
+
+//掲載フラグ(名称)
+//掲載する
+define('SHOW_FLAG_YES_NAME', '掲載中');
+//掲載しない
+define('SHOW_FLAG_NO_NAME', '非掲載');
+
+
+
+////関連付けフラグ
+////未関連付け
+//define('SITE_RELATION_FLAG_NO', '0');
+////関連付け済
+//define('SITE_RELATION_FLAG_YES', '1');
+//
+////関連付けフラグ(名称)
+////未削除
+////未関連付け
+//define('SITE_RELATION_FLAG_NO_NAME', '未');
+////関連付け済
+//define('SITE_RELATION_FLAG_YES_NAME', '済');
+//
+//
+////相互リンクサイト一覧表示モード
+////通常一覧
+//define('SITE_LIST_MODE_NORMAL', '1');
+////マトリクス
+//define('SITE_LIST_MODE_MATRIX', '2');
+//
+////相互リンクサイト一覧表示モード(名称)
+////通常一覧
+//define('SITE_LIST_MODE_NORMAL_NAME', '一覧表示');
+////マトリクス
+//define('SITE_LIST_MODE_MATRIX_NAME', 'マトリクス表示');
+//define('SITE_LIST_MODE_MATRIX_NAME_2', 'マトリクス表示(※[リンク状況検索条件]は無視します。)');
+
+
+//FAX有無フラグ
+//有
+define('FAX_FLAG_NO', '0');
+//無
+define('FAX_FLAG_YES', '1');
+
+//FAX有無フラグ(名称)
+//有
+define('FAX_FLAG_NO_NAME', '&nbsp;');
+//無
+define('FAX_FLAG_YES_NAME', 'なし');
+
+
+//マスタ更新画面の動作モード
+//{1:単独表示/2:他画面経由の表示}
+define('MST_MODE_FROM_MENU', '1');
+define('MST_MODE_FROM_OTHER', '2');
+
+
+//ページID
+//請求額一覧
+define('PAGE_ID_INQ_PRICE', 'PAGE_ID_INQ_PRICE');
+
+
+//マスタ名
+//カテゴリーマスタ
+define('MST_NAME_CATEGORY', 'mst_category');
+//サブカテゴリーマスタ
+define('MST_NAME_SUBCATEGORY', 'mst_subcategory');
+
+
+//状況マスタ
+define('MST_NAME_STATUS', 'mst_status');
+//担当者マスタ
+define('MST_NAME_STAFF', 'mst_staff');
+//後遺障害等級(級)マスタ
+define('MST_NAME_AFTEREFFECTS_GRADE_01', 'mst_aftereffects_grade_01');
+
+
+//XML名
+//商品情報
+define('XML_NAME_ITEM', 'form_info_item');
+//カート情報
+define('XML_NAME_CART', 'form_info_cart');
+//ボトル画像情報
+define('XML_NAME_BOTTLE_IMAGE', 'form_info_bottle_image');
+//彫刻パターン画像情報
+define('XML_NAME_DESIGN_IMAGE', 'form_info_design_image');
+//彫刻文字(和字)画像情報
+define('XML_NAME_CHARACTER_J_IMAGE', 'form_info_character_j_image');
+//彫刻文字(英字)画像情報
+define('XML_NAME_CHARACTER_E_IMAGE', 'form_info_character_e_image');
+
+
+////問合せ情報
+//define('XML_NAME_INQ', 'form_info_inq');
+////相互リンク情報
+//define('XML_NAME_LINK', 'form_info_link');
+//問合せ情報(携帯用)
+define('XML_NAME_INQ_MOBILE', 'form_info_inq_mobile');
+
+
+
+//問合せ情報(メール本文から登録用)
+define('XML_NAME_INQ_FROM_MAIL', 'form_info_inq_from_mail');
+
+
+
+//状況マスタ
+//1	未対応
+define('MST_STATUS_ID_NON_COPE', 1);
+////2	対応中
+//define('MST_STATUS_ID_COPING', 2);
+////3	対応済
+//define('MST_STATUS_ID_COPED', 3);
+////4	キャンセル
+//define('MST_STATUS_ID_CANCEL', 4);
+
+//2	初回メール
+define('MST_STATUS_ID_FIRST_MAIL', 2);
+//3	面談
+define('MST_STATUS_ID_INTERVIEW', 3);
+//4	着手金受領
+define('MST_STATUS_ID_START_MONEY', 4);
+//5	交渉
+define('MST_STATUS_ID_NEGOTIATION', 5);
+//6	終了
+define('MST_STATUS_ID_END', 6);
+//7	キャンセル
+define('MST_STATUS_ID_CANCEL', 7);
+//8	成功報酬受領
+define('MST_STATUS_ID_SUCCESS_MONEY', 8);
+
+
+//入力項目タイプマスタ
+//1	ラジオボタン
+define('MST_INPUT_TYPE_ID_RADIO', 1);
+//2	プルダウンメニュー
+define('MST_INPUT_TYPE_ID_SELECT', 2);
+//3	テキスト(文字)
+define('MST_INPUT_TYPE_ID_TEXT_CHAR', 3);
+//4	テキスト(金額)
+define('MST_INPUT_TYPE_ID_TEXT_PRICE', 4);
+//5	コメント
+define('MST_INPUT_TYPE_ID_COMMENT', 5);
+
+//入力項目必須マスタ
+//1	必須
+define('MST_INPUT_REQUIRED_ID_REQUIRED', 1);
+//2	任意
+define('MST_INPUT_REQUIRED_ID_OPTIONAL', 2);
+
+//入力項目必須マスタ(名称・マーク)
+//1	必須
+define('MST_INPUT_REQUIRED_ID_REQUIRED_MARK', "※");
+//2	任意
+define('MST_INPUT_REQUIRED_ID_OPTIONAL_MARK', "");
+
+//入力項目必須マスタ(コメント)
+//1	必須
+define('MST_INPUT_REQUIRED_ID_REQUIRED_COMMENT', MST_INPUT_REQUIRED_ID_REQUIRED_MARK."のついた項目は必須入力です。");
+
+//カラーマスタ
+//1	なし
+define('MST_COLOR_ID_NON', 1);
+//2	ゴールド
+define('MST_COLOR_ID_GOLD', 2);
+//3	シルバー
+define('MST_COLOR_ID_SILVER', 3);
+//4	ブラック
+define('MST_COLOR_ID_BLACK', 4);
+//5	お客様指定の色
+define('MST_COLOR_ID_DESIGNATE', 5);
+
+//支払方法マスタ
+//1	代金引換
+define('MST_PAYMENT_ID_CASH_ON_DELIVERY', 1);
+//2	銀行振込(前払い)
+define('MST_PAYMENT_ID_BANK', 2);
+//3	クレジットカード決済
+define('MST_PAYMENT_ID_CREDIT_CARD', 3);
+
+
+//カテゴリーマスタ
+//1	ボトル
+define('MST_CATEGORY_ID_BOTTLE', 1);
+//2	フォトエッチング
+define('MST_CATEGORY_ID_PHOTO', 2);
+//3	イラストエッチング
+define('MST_CATEGORY_ID_ILLUSTRATION', 3);
+//4	血統書・ペットグッズ
+define('MST_CATEGORY_ID_PET', 4);
+//5	家紋(額入り)
+define('MST_CATEGORY_ID_CREST', 5);
+//6	その他のガラスギフト
+define('MST_CATEGORY_ID_OTHERS', 6);
+//7	デニム加工
+define('MST_CATEGORY_ID_DENIM', 7);
+
+
+//文字_和マスタ
+//なし
+define('MST_CHARACTER_J_ID_NON', 1);
+//文字_英マスタ
+//なし
+define('MST_CHARACTER_E_ID_NON', 1);
+
+
+
+//新会社設立用--------------------------------start
+//問合せタイプマスタ
+//1	会社設立
+define('MST_INQUIRY_TYPE_ID_CMP', 1);
+//2	LLC
+define('MST_INQUIRY_TYPE_ID_LLC', 2);
+//3	NPO
+define('MST_INQUIRY_TYPE_ID_NPO', 3);
+
+//問合せタイプ_設立コースマスタ
+//
+//1	1	定款認証
+define('MST_INQUIRY_TYPE_COURSE_ID_CMP_ARTICLES', 1);
+//2	1	格安設立代行
+define('MST_INQUIRY_TYPE_COURSE_ID_CMP_CHEAP', 2);
+//3	1	設立代行[メールコンサルティング]
+define('MST_INQUIRY_TYPE_COURSE_ID_CMP_MAIL', 3);
+//4	1	設立代行[面談コンサルティング]
+define('MST_INQUIRY_TYPE_COURSE_ID_CMP_TALK', 4);
+//5	2	定款認証
+define('MST_INQUIRY_TYPE_COURSE_ID_LLC_ARTICLES', 5);
+//6	2	格安設立代行
+define('MST_INQUIRY_TYPE_COURSE_ID_LLC_CHEAP', 6);
+//7	2	設立代行[メールコンサルティング]
+define('MST_INQUIRY_TYPE_COURSE_ID_LLC_MAIL', 7);
+//8	2	設立代行[面談コンサルティング]
+define('MST_INQUIRY_TYPE_COURSE_ID_LLC_TALK', 8);
+//9	3	格安設立代行
+define('MST_INQUIRY_TYPE_COURSE_ID_NPO_CHEAP', 9);
+//10	3	設立代行パーフェクト
+define('MST_INQUIRY_TYPE_COURSE_ID_NPO_PERFECT', 10);
+//11	1	セルフスタンド
+define('MST_INQUIRY_TYPE_COURSE_ID_CMP_SELF', 11);
+//12	2	セルフスタンド
+define('MST_INQUIRY_TYPE_COURSE_ID_LLC_SELF', 12);
+
+
+
+//問合せタイプ_設立コース_状況マスタ
+//mst_inquiry_type_course_status
+//1	1	受付
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_CMP_ARTICLES_START', 1);
+//2	1	お振込
+//3	1	お振込確認
+//4	1	定款認証
+//5	1	完了
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_CMP_ARTICLES_END', 5);
+//6	1	キャンセル
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_CMP_ARTICLES_CANCEL', 6);
+
+//7	2	受付
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_CMP_CHEAP_START', 7);
+//8	2	お振込
+//9	2	お振込確認
+//10	2	会社の基本事項決定
+//11	2	定款作成
+//12	2	定款認証
+//13	2	出資金の払い込み
+//14	2	登録申請
+//15	2	完了
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_CMP_CHEAP_END', 15);
+//16	2	キャンセル
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_CMP_CHEAP_CANCEL', 16);
+
+//17	3	受付
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_CMP_MAIL_START', 17);
+//18	3	お振込
+//19	3	お振込確認
+//20	3	会社の基本事項決定
+//21	3	定款作成
+//22	3	定款認証
+//23	3	出資金の払い込み
+//24	3	登録申請
+//25	3	完了
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_CMP_MAIL_END', 25);
+//26	3	キャンセル
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_CMP_MAIL_CANCEL', 26);
+
+//27	4	受付
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_CMP_TALK_START', 27);
+//28	4	お振込
+//29	4	お振込確認
+//30	4	面談業務中…
+//31	4	完了
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_CMP_TALK_END', 31);
+//32	4	キャンセル
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_CMP_TALK_CANCEL', 32);
+
+//33	5	受付
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_LLC_ARTICLES_START', 33);
+//34	5	お振込
+//35	5	お振込確認
+//36	5	定款認証
+//37	5	完了
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_LLC_ARTICLES_END', 37);
+//38	5	キャンセル
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_LLC_ARTICLES_CANCEL', 38);
+
+//39	6	受付
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_LLC_CHEAP_START', 39);
+//40	6	お振込
+//41	6	お振込確認
+//42	6	会社の基本事項決定
+//43	6	定款作成
+//44	6	定款認証
+//45	6	出資金の払い込み
+//46	6	登録申請
+//47	6	完了
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_LLC_CHEAP_END', 47);
+//48	6	キャンセル
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_LLC_CHEAP_CANCEL', 48);
+
+//49	7	受付
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_LLC_MAIL_START', 49);
+//50	7	お振込
+//51	7	お振込確認
+//52	7	会社の基本事項決定
+//53	7	定款作成
+//54	7	定款認証
+//55	7	出資金の払い込み
+//56	7	登録申請
+//57	7	完了
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_LLC_MAIL_END', 57);
+//58	7	キャンセル
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_LLC_MAIL_CANCEL', 58);
+
+//59	8	受付
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_LLC_TALK_START', 59);
+//60	8	お振込
+//61	8	お振込確認
+//62	8	面談業務中…
+//63	8	完了
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_LLC_TALK_END', 63);
+//64	8	キャンセル
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_LLC_TALK_CANCEL', 64);
+
+//65	9	受付
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_NPO_CHEAP_START', 65);
+//66	9	お振込
+//67	9	お振込確認
+//68	9	会社の基本事項決定
+//69	9	定款作成
+//70	9	定款認証
+//71	9	出資金の払い込み
+//72	9	登録申請
+//73	9	完了
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_NPO_CHEAP_END', 73);
+//74	9	キャンセル
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_NPO_CHEAP_CANCEL', 74);
+
+//75	10	受付
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_NPO_PERFECT_START', 75);
+//76	10	お振込
+//77	10	お振込確認
+//78	10	会社の基本事項決定
+//79	10	定款作成
+//80	10	定款認証
+//81	10	出資金の払い込み
+//82	10	登録申請
+//83	10	完了
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_NPO_PERFECT_END', 83);
+//84	10	キャンセル
+define('MST_INQUIRY_TYPE_COURSE_STATUS_ID_NPO_PERFECT_CANCEL', 84);
+
+
+////会社タイプマスタ
+////1	株式会社
+//define('MST_COMPANY_TYPE_ID_CMP', 1);
+////2	LLC
+//define('MST_COMPANY_TYPE_ID_LLC', 2);
+////3	NPO
+//define('MST_COMPANY_TYPE_ID_NPO', 3);
+
+
+//会社タイプ_役職マスタ
+//1	1	代表取締役
+define('MST_COMPANY_TYPE_POST_ID_CMP_REP_DIRECTOR', 1);
+//2	1	取締役
+define('MST_COMPANY_TYPE_POST_ID_CMP_DIRECTOR', 2);
+//3	3	設立者(理事長)
+define('MST_COMPANY_TYPE_POST_ID_NPO_REP_FOUNDER', 3);
+//4	3	設立者
+define('MST_COMPANY_TYPE_POST_ID_NPO_FOUNDER', 4);
+//5	1	監査役
+define('MST_COMPANY_TYPE_POST_ID_CMP_INSPECTOR', 5);
+//6	2	代表社員
+define('MST_COMPANY_TYPE_POST_ID_LLC_REP_STAFF', 6);
+//7	2	代表社員以外
+define('MST_COMPANY_TYPE_POST_ID_LLC_STAFF', 7);
+
+//会社タイプ_業務マスタ
+//1	2	業務執行社員になる
+define('MST_COMPANY_TYPE_DUTIES_ID_LLC_EXECUTION', 1);
+//2	2	業務執行社員にならない(出資のみ)
+define('MST_COMPANY_TYPE_DUTIES_ID_LLC_NO_EXECUTION', 2);
+
+
+
+//国籍マスタ
+//1	日本国籍
+define('MST_NATIONALITY_ID_JAPAN', 1);
+//2	外国籍
+define('MST_NATIONALITY_ID_FOREIGN', 2);
+
+
+
+
+//移転・引越しフラグ{0:移転・引越し済み/1:移転・引越しはこれから}
+//移転・引越し済み
+define('MOVE_FLAG_YES', 0);
+//移転・引越しはこれから
+define('MOVE_FLAG_NO', 1);
+
+//移転・引越しフラグ(名称){0:移転・引越し済み/1:移転・引越しはこれから}
+//移転・引越し済み
+define('MOVE_FLAG_YES_NAME', '移転・引越し済み');
+//移転・引越しはこれから
+define('MOVE_FLAG_NO_NAME', '移転・引越しはこれから');
+
+
+//最新フラグ{0:過去状況/1:最新状況}
+//過去状況
+define('LATEST_FLAG_NO', 0);
+//最新状況
+define('LATEST_FLAG_YES', 1);
+//新会社設立用--------------------------------end
+
+//新会社設立用(旧ソース/common/constants.iniから移転)-------------start
+//会社売買関希望プラン
+//会社売却
+define('GOODCOMP_PLAN_ID_SELL', 1);
+//会社購入
+define('GOODCOMP_PLAN_ID_BUY', 2);
+
+
+//会社設立コース
+//定款認証
+define('COURSE_ID_ARTICLES', 1);
+//格安設立代行
+define('COURSE_ID_CHEAP', 2);
+//設立代行[メールコンサルティング]
+define('COURSE_ID_MAIL', 3);
+//設立代行[面談コンサルティング]
+define('COURSE_ID_TALK', 4);
+//セルフスタンド
+define('COURSE_ID_SELF', 5);
+
+
+//はい・いいえ
+//はい
+define('YESNO_YES', 1);
+//いいえ
+define('YESNO_NO', 2);
+
+
+//なし・あり
+//なし
+define('EXPERIENCE_NO', 1);
+//あり
+define('EXPERIENCE_YES', 2);
+//新会社設立用(旧ソース/common/constants.iniから移転)-------------end
+
+////(売上CSV作成用)
+//define('MST_NAME_CSV_SALES', 'csv_sales');
+
+////リンク状況マスタ
+////1	自社サイト掲載済み
+//define('MST_LINK_STATUS_ID_CARRIED', 1);
+////2	打診メール送信済み
+//define('MST_LINK_STATUS_ID_SENT', 2);
+////3	打診メール送信済み(再送信)
+//define('MST_LINK_STATUS_ID_RE_SENT', 3);
+////4	打診メール送信済み→返信有り
+//define('MST_LINK_STATUS_ID_RETURNED', 4);
+////5	相互リンク待ち
+//define('MST_LINK_STATUS_ID_WAITING', 5);
+////6	相互リンク確認済み(完了)
+//define('MST_LINK_STATUS_ID_END', 6);
+
+////メールテンプレートマスタ
+////1	個人サイト用
+//define('MST_MAIL_TEMPLATE_ID_INDIVIDUAL', 1);
+////2	法人サイト用
+//define('MST_MAIL_TEMPLATE_ID_CORPORATION', 2);
+
+
+//
+////会社マスタ
+////1	ABCレンタカー
+//define('MST_COMPANY_ID_ABC', 1);
+////2	マツダレンタカー
+//define('MST_COMPANY_ID_MAZDA', 2);
+//
+//
+////プランマスタ
+////1	スタンダードプラン
+//define('MST_PLAN_ID_STANDARD', 1);
+////2	空港店インターネット予約特別プラン
+//define('MST_PLAN_ID_NET_AIRPORT', 2);
+////3	DFS店インターネット予約特別プラン
+//define('MST_PLAN_ID_NET_DFS', 3);
+////4	DFSたびんちゅプラン
+//define('MST_PLAN_ID_NET_DFS_TABINCHU', 4);
+////5	スカイマークプラン
+//define('MST_PLAN_ID_NET_SKYMARK', 5);
+////6	ワイドタイアッププラン
+//define('MST_PLAN_ID_NET_TIEUP', 6);
+////7	DFS新車限定プラン
+//define('MST_PLAN_ID_NET_DFS_NEW', 7);
+////8	全国ドライブプラン
+//define('MST_PLAN_ID_NET_MAZDA_46', 8);
+//
+//
+////レンタル時間マスタ
+////1	6時間まで	6
+//define('MST_TIME_ID_006', 1);
+////2	当日返却	24
+//define('MST_TIME_ID_024', 2);
+////3	1拍2日	48
+//define('MST_TIME_ID_048', 3);
+////4	2拍3日	72
+//define('MST_TIME_ID_072', 4);
+////5	3拍4日	96
+//define('MST_TIME_ID_096', 5);
+////6	4拍5日	120
+//define('MST_TIME_ID_120', 6);
+////7	以後1日毎
+//define('MST_TIME_ID_ADD_024', 7);
+////8	以後1時間毎
+//define('MST_TIME_ID_ADD_001', 8);
+////9	免責補償料1日毎
+//define('MST_TIME_ID_ESCAPE', 9);
+//
+////免責補償料マスタ
+////無し
+//define('MST_ESCAPE_PRICE_ID_NON', 1);
+////込み
+//define('MST_ESCAPE_PRICE_ID_IN', 2);
+//
+//
+////クラスマスタ
+////以下はABCのクラス
+////1	Kクラス
+//define('MST_CLASS_ID_K', 1);
+////2	Sクラス
+//define('MST_CLASS_ID_S', 2);
+////3	Aクラス
+//define('MST_CLASS_ID_A', 3);
+////4	Bクラス
+//define('MST_CLASS_ID_B', 4);
+////5	Cクラス
+//define('MST_CLASS_ID_C', 5);
+////6	WAクラス
+//define('MST_CLASS_ID_WA', 6);
+////7	WBクラス
+//define('MST_CLASS_ID_WB', 7);
+//
+////以下はマツダのクラス
+////8	C1クラス
+//define('MST_CLASS_ID_C1', 8);
+////9	C2クラス
+//define('MST_CLASS_ID_C2', 9);
+////10	C3クラス
+//define('MST_CLASS_ID_C3', 10);
+////11	M2クラス
+//define('MST_CLASS_ID_M2', 11);
+////12	S2クラス
+//define('MST_CLASS_ID_S2', 12);
+////13	R1クラス
+//define('MST_CLASS_ID_R1', 13);
+////14	R2クラス
+//define('MST_CLASS_ID_R2', 14);
+////15	W1クラス
+//define('MST_CLASS_ID_W1', 15);
+//
+//
+//
+////オプションマスタ
+////1	ベビーシート(1,050円/回)
+//define('MST_OPTION_ID_BABY', 1);
+////2	チャイルドシート(1,050円/回)
+//define('MST_OPTION_ID_CHILD', 2);
+////3	ジュニアシート(525円/回)
+//define('MST_OPTION_ID_JUNIOR', 3);
+////4	禁煙車(A・Cクラス：525円/日、WAクラス：1,050円/日)
+//define('MST_OPTION_ID_NONSMOKING', 4);
+//
+////オプション価格単位マスタ
+////1	1回
+//define('MST_OPTION_UNIT_ID_ONE_TIME', 1);
+////2	1日毎
+//define('MST_OPTION_UNIT_ID_ONE_DAY', 2);
+//
+//
+////キャンペーンサブタイトル画像
+////パターン１(通常)
+//define('CAMPAIGN_SUB_TITLE_IMG_NORMAL', 1);
+////パターン２(豪華アゲ♂アゲ♂)
+//define('CAMPAIGN_SUB_TITLE_IMG_SPECIAL', 2);
+
+
+
+//[管理画面]マスタ情報を一度に登録する数(一覧のNoに+Nと表示される行数)
+define('ADMIN_ADD_COUNT', 5);
+
+//[管理画面]マスタ情報を一度に登録する数_水平表示用(一覧のNoに+Nと表示される行数)
+define('ADMIN_ADD_COUNT_HORIZONTAL', 3);
+
+
+//本システムの稼動開始年(年のプルダウンメニューなどの開始とする年に使用する。)
+define('SYSTEM_START_YEAR', 2010);
+
+
+//明治元年の西暦
+define('JP_YEAR_START_MEIJI', 1868);
+//大正元年の西暦
+define('JP_YEAR_START_TAISHO', 1912);
+//昭和元年の西暦
+define('JP_YEAR_START_SHOWA', 1926);
+//平成元年の西暦
+define('JP_YEAR_START_HEISEI', 1989);
+
+
+
+//請求額をまとめる開始月。(1潤ｵ12)
+define('INQUIRY_PRICE_START_MONTH', 1);
+//請求額をまとめる月数。
+define('INQUIRY_PRICE_TOTAL_MONTH', 3);
+
+//等級の再確定の回数
+define('INQUIRY_AFTEREFFECTS_GRADE_DECISION_MAX_COUNT', 2);
+
+//着手金額の初期値
+define('INQUIRY_START_PRICE', 100000);
+
+
+//問合せテーブル.備考に挿入する日付のための置換文字列
+define('INQUIRY_NOTE_DATE_REPLACE', '[d]');
+//問合せテーブル.備考に挿入する日付のフォーマット
+define('INQUIRY_NOTE_DATE_FORMAT', '(Y/m/d H:i:s)');
+
+
+
+
+//「おススメアイテム」商品リストに表示する商品の最大数(基準数)
+define('ITEM_LIST_MAX_COUNT', 12);
+//「おススメアイテム」商品リストに表示する商品の「サブカテゴリー」単位の最大数
+define('ITEM_LIST_MAX_COUNT_SUBCATEGORY', 3);
+//「おススメアイテム」商品リストに表示する商品の「サブカテゴリー」単位の最大数を調整する回数→最大 ITEM_LIST_MAX_COUNT_SUBCATEGORY(3)×ITEM_LIST_ADJUST_COUNT_SUBCATEGORY(4)=(12)個になる
+define('ITEM_LIST_ADJUST_COUNT_SUBCATEGORY', 4);
+
+
+
+//商品ページの個数の最大数
+define('ITEM_MAX_BUY_COUNT_4_ITEM_PAGE', 10);
+//商品ページの着色カラー数の最大数
+define('ITEM_MAX_COLOR_COUNT_4_ITEM_PAGE', 5);
+
+//ラッピング料金(計算用)
+define('ITEM_WRAPPING_PRICE', 315);
+//define('ITEM_WRAPPING_PRICE_NON', 0);
+//ラッピング料金(表示用)※改行をいれたい場合は、\nを設定すると<br />に置換されます。タグはHTMLエンティティに置換されます。
+//define('ITEM_WRAPPING_PRICE_LABEL_4_ITEM_PAGE', "有 ( + ￥".number_format(ITEM_WRAPPING_PRICE).")");
+define('ITEM_WRAPPING_COUNT_LABEL_4_ITEM_PAGE', "ラッピング1つにつき ￥".number_format(ITEM_WRAPPING_PRICE)."");
+define('ITEM_WRAPPING_COUNT_MESSAGE_4_ITEM_PAGE', "ラッピングの種類、ラッピングの方法にご指定のある場合は「STEP5　ご要望」の欄にご記入ください。");
+
+
+////ラッピング料金(表示用)※改行をいれたい場合は、\nを設定すると<br />に置換されます。タグはHTMLエンティティに置換されます。
+//define('ITEM_WRAPPING_PRICE_LABEL', "有");
+//define('ITEM_WRAPPING_PRICE_LABEL_NON', "無");
+
+
+//送料(表示用)
+define('ITEM_POSTAGE_LABEL', "送料");
+//送料(計算用)
+define('ITEM_POSTAGE_PRICE_FREE', 0);
+//送料(表示用)
+define('ITEM_POSTAGE_PRICE_LABEL', "＋送料");
+define('ITEM_POSTAGE_PRICE_FREE_LABEL', "無料");
+//送料を無料にする購入金額(計算用)
+define('ITEM_POSTAGE_FREE_PRICE_CONDITION', 20000);
+//送料を無料にする購入金額(表示用)
+define('ITEM_POSTAGE_FREE_PRICE_LABEL_4_ITEM_PAGE', "￥".number_format(ITEM_POSTAGE_FREE_PRICE_CONDITION)."以上で送料無料！");
+
+//代引手数料(表示用)
+define('ITEM_CASH_ON_DELIVERY_LABEL', "代引手数料");
+//代引手数料(計算用)
+define('ITEM_CASH_ON_DELIVERY_PRICE', 315);
+define('ITEM_CASH_ON_DELIVERY_PRICE_FREE', 0);
+define('ITEM_CASH_ON_DELIVERY_PRICE_FREE_LABEL', "無料");//null又は空文字を設定した場合、ITEM_CASH_ON_DELIVERY_PRICE_FREEの数字(0円)と表示される。
+define('ITEM_CASH_ON_DELIVERY_PRICE_NON_LABEL', "━");
+//代金引換を無料にする購入金額(計算用)
+define('ITEM_CASH_ON_DELIVERY_FREE_PRICE_CONDITION', 20000);
+//代金引換を無料にする購入金額(表示用)
+define('ITEM_CASH_ON_DELIVERY_FREE_PRICE_LABEL_4_ITEM_PAGE', "￥".number_format(ITEM_CASH_ON_DELIVERY_FREE_PRICE_CONDITION)."以上で代引手数料無料！");
+
+
+//着色カラー料金(計算用)
+define('ITEM_COLOR_FREE_PRICE_CONDITION', 1);	//無料となる着色カラー数
+define('ITEM_COLOR_PRICE', 315);				//上記の[カラー数+1]以上は1色315円
+//着色カラー料金(表示用)
+define('ITEM_COLOR_PRICE_LABEL_4_ITEM_PAGE', "1色￥".number_format(ITEM_COLOR_PRICE)." (".ITEM_COLOR_FREE_PRICE_CONDITION."色無料)");
+define('ITEM_COLOR_FREE_PRICE_LABEL_4_MAIL', "(".ITEM_COLOR_FREE_PRICE_CONDITION."色無料)");
+define('ITEM_COLOR_FREE_PRICE_LABEL_4_CART', "(".ITEM_COLOR_FREE_PRICE_CONDITION."色無料)");
+define('ITEM_COLOR_MESSAGE_4_ITEM_PAGE', "着色カラーのご指定は「STEP5　ご要望」の欄にご記入ください。");
+
+
+////請求額マスタ
+////1	敷金（保証金）の範囲内
+//define('MST_AMOUNT_CLAIMED_ID_IN', 1);
+////2	敷金（保証金）の範囲外
+//define('MST_AMOUNT_CLAIMED_ID_OUT', 2);
+////3	まだ請求されていない
+//define('MST_AMOUNT_CLAIMED_ID_NON', 3);
+//
+////減額・返還希望額マスタ
+////1	減額・返還額が手数料より多ければ依頼する。
+//define('MST_REDUCTION_ID_COMMISSION', 1);
+////2	％ 減額・返金が見込まれる場合依頼する。
+//define('MST_REDUCTION_ID_RATIO', 2);
+//
+//
+//
+////合意額マスタ
+////1	現状以上であれば合意する。（減額・返還額から士業報酬・手数料等を除いた額が現状よりも多ければ）
+//define('MST_AMOUNT_AGREEMENT_ID_SITUATION', 1);
+////2	円以上のが実現する場合は合意する。
+//define('MST_AMOUNT_AGREEMENT_ID_YEN_OVER', 2);
+////3	円以下の原状回復費用の追加支払いまでなら合意する。
+//define('MST_AMOUNT_AGREEMENT_ID_YEN_UNDER', 3);
+//
+////訴訟マスタ
+////1	結果に関わらず訴訟は考えていない。
+//define('MST_SUIT_ID_NO', 1);
+////2	円以上のが実現しない場合は訴訟も辞さない。
+//define('MST_SUIT_ID_YEN_OVER', 2);
+////3	敷金とは別に円以上の原状回復費用を貸主が要求し、減額に応じない場合は訴訟も辞さない。
+//define('MST_SUIT_ID_OTHER', 3);
+
+
+
+
+////状況
+////未契約
+//define('STATUS_NON_CONTRACT', 1);
+////お問合せ中
+//define('STATUS_INQUIRING', 2);
+////お引渡し準備中
+//define('STATUS_TRANSFERING', 3);
+////契約済
+//define('STATUS_CONTRACTED', 4);
+//
+////掲載フラグ
+////掲載する
+//define('CARRY_YES', 1);
+////掲載しない
+//define('CARRY_NO', 2);
+//
+////性別
+////男の子
+//define('SEX_MEN', 1);
+////女の子
+//define('SEX_WOMEN', 2);
+////どちらでもよい
+//define('SEX_ALL', 3);
+//
+////血統書
+////×(無)
+//define('PEDIGREE_NO', 1);
+////○(有)
+//define('PEDIGREE_YES', 2);
+//
+////連絡先
+////E-Mail
+//define('CONTACT_E_MAIL', 1);
+////電話番号
+//define('CONTACT_TEL', 2);
+////携帯番号
+//define('CONTACT_MOBILE', 3);
+//
+//
+//
+////価格単位
+//define('UNIT_PRICE', '円');
+////価格単位(万円)
+//define('UNIT_PRICE_TEN_THOUSAND', '万円');
+////体高単位
+//define('UNIT_HEIGHT', 'cm');
+////体長単位
+//define('UNIT_LONG', 'cm');
+////体重単位
+//define('UNIT_WEIGHT', 'kg');
+//
+////動作モード
+//define('MODE_NEW', 1);			//新規登録
+//define('MODE_ADD', 2);			//追加登録
+//define('MODE_CONFIRM', 3);	//確認
+//define('MODE_ERR', 4);			//エラー
+////動作モードに対応するサブタイトル
+//define('MODE_NEW_TITLE', '(新規登録)');			//新規登録
+//define('MODE_ADD_TITLE', '(追加登録)');			//追加登録
+//define('MODE_CONFIRM_TITLE', '');				//確認
+//define('MODE_ERR_TITLE', '');						//エラー
+//
+////システム開始年(プルダウンメニューなどに使用する。)
+//define('START_YEAR', 2006);
+//
+////NEW画像を表示する期間(単位：日)→掲載日で判断する。
+//define('SHOW_NEW_IMG_PERIOD', 14);
+//
+////血統書"有"の場合、○以外(マスタ設定値以外)を表示するときの文字列
+//define('LABEL_PEDIGREE_YES', '日本犬保存会');
+////定数--------------------------------------------------------end
+//
+//
+////犬情報書き出しファイル関連----------------------------------start
+////犬情報書き出しファイル名
+//define('MEMO_FILE_NAME', 'info.txt');
+////犬情報書き出しファイル関連----------------------------------end
+//
+////加工画像関連------------------------------------------------start
+//define('IMG_DIR_BASE', '../img/puppy');
+//define('IMG_DIR_BASE_FOR_MAIL', SITE_URL.'/img/puppy');
+//
+////仔犬ページで横並びに画像を表示する枚数
+//define('MINI_PUPPY_IMG_COL_COUNT', 5);
+//
+////スワップ用のカメラ画像を表示する枚数
+//define('CAMERA_IMG_COUNT', 6);
+//
+////加工画像関連------------------------------------------------end
+//
+////ブリーダー関連----------------------------------------------start
+////ブリーダーログインURL(画像アップロード画面)
+//define('URL_BREEDER', SITE_URL.'/admin/index.php?account=%s');
+//
+////ブリーダー紹介ページのカレントURL
+//define('URL_BASE_BREEDER_INTRODUCTION', SITE_URL.'/breeder');
+////ブリーダー関連----------------------------------------------start
+//
+////ページリンク関連--------------------------------------------start
+////選択されたページの前後に表示するページ数
+//define('PAGE_LINK_LIMIT', 5);
+////1ページの表示件数
+//define('PAGE_LINK_SHOW_NUM_OF_ONE_PAGE', 4);//30
+////「前へ」のリンクに使用する文字列
+//define('PAGE_LINK_FRONT_TEXT', '<');
+////「後ろへ」のリンクに使用する文字列
+//define('PAGE_LINK_REAR_TEXT', '>');
+//
+////仔犬検索ページ
+////1ページの表示件数
+//define('PAGE_LINK_SHOW_NUM_OF_ONE_PAGE_IN_SRCH_PUPPY', 12);//30
+////横に表示する数
+//define('COL_COUNT_IN_SRCH_PUPPY', 4);//30
+////ページリンク関連--------------------------------------------end
+//
+//
+
+
+
+
+
+
+
+
+
+//※※※以下は使用していません。管理画面を作成するときに使用します。※※※
+
+
+
+////タイトル----------------------------------------------------start
+////タイトル
+//define('CMN_TITLE', 'MANI MANI 管理画面');
+////簡単な概要
+//define('CMN_DESCRIPTION', 'MANI MANI 管理画面');
+////文書に関連するキーワード
+//define('CMN_KEYWORDS', 'MANI MANI 管理画面');
+//
+////画面毎タイトル
+////メニュー画面
+//define('CMN_TITLE_SUB_LOGIN', 'ログイン');
+////メニュー画面
+//define('CMN_TITLE_SUB_00', 'メニュー');
+////注文一覧画面
+//define('CMN_TITLE_SUB_01', '注文一覧');
+////注文情報画面
+//define('CMN_TITLE_SUB_02', '注文情報');
+////タイトル----------------------------------------------------end
+//
+////Copyright---------------------------------------------------start
+////Copyright
+//define('COPYRIGHT_WOOROM', "Copyright &copy; <a href=\"http://www.woorom.com/\">WOOROM WEB</a>.");
+////Copyright---------------------------------------------------end
+//
+////サイトURL---------------------------------------------------start
+////Copyright
+//define('SITE_URL', "http://www.yunbancyen.jp");
+////サイトURL---------------------------------------------------end
+//
+//
+////WOOROM管理者------------------------------------------------start
+////WOOROM管理者E-Mail
+//define('WOOROM_E_MAIL', 'yamada@woorom.com');
+////WOOROM管理者E-Mail(CC)
+//define('WOOROM_E_MAIL_CC', 'tsuda@woorom.com');
+////申し込み情報削除依頼メール件名
+//define('WOOROM_E_MAIL_SUBJECT_DEL', 'MANI_MANI_Delete_[%s]');
+////WOOROM管理者------------------------------------------------end
+//
+//
+////処理開始年--------------------------------------------------start
+////処理開始年(年のプルダウンメニューの開始年に使用する。)
+//define('START_YEAR', 2006);
+////処理開始年--------------------------------------------------end
+
+
+
+////セッションキー----------------------------------------------start
+////ログイン情報
+//define('SID_LOGIN_INFO', 'SID_LOGIN_INFO');
+//
+////注文一覧関連
+////検索条件
+//define('SID_SRCH_INQUIRY_CONDITION', 'SID_SRCH_INQUIRY_CONDITION');
+////検索結果
+//define('SID_SRCH_INQUIRY_LIST', 'SID_SRCH_INQUIRY_LIST');
+////検索件数を設定する。
+//define('SID_SRCH_INQUIRY_LIST_COUNT', 'SID_SRCH_INQUIRY_LIST_COUNT');
+////選択ページ
+//define('SID_SRCH_INQUIRY_ACTIVE_PAGE', 'SID_SRCH_INQUIRY_ACTIVE_PAGE');
+////セッションキー----------------------------------------------end
+//
+//
+//
+////定数--------------------------------------------------------start
+////状態
+////未対応
+//define('STATUS_NON', 1);
+////対応中
+//define('STATUS_DURING', 2);
+////納品済み
+//define('STATUS_DELIVERED', 3);
+////清算済み→この状態になった場合、以降情報の編集は不可。
+//define('STATUS_SETTLED', 4);
+////キャンセル
+//define('STATUS_CANCEL', 5);
+//
+//
+//
+//
+////注文テーブルの完了日付更新フラグ
+////完了日付を更新しない。
+//define('END_DATE_NOUPDATE', 0);
+////完了日付を設定する。
+//define('END_DATE_UPDATE', 1);
+////完了日付を削除する。
+//define('END_DATE_DELETE', 2);
+////定数--------------------------------------------------------end
+?>

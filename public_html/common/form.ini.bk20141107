@@ -1,0 +1,6120 @@
+<?php
+/*
+ * [新★会社設立.JP ツール]
+ * フォーム関連ファイル
+ *
+ * 更新履歴：2008/12/01	d.ishikawa	新規作成
+ *
+ */
+
+include_once(dirname(__FILE__)."/constants.ini");
+include_once(dirname(__FILE__)."/log.ini");
+include_once(dirname(__FILE__)."/xml.ini");
+
+/**
+ * フォーム用のXMLを読み込んで配列に格納する。
+ * 注意：DBはオープンしておくこと。
+ *
+ * @param	string	$filename	XMLファイルパス
+ * @param	array	$otherList	その他に設定したい情報
+ * @return	array	XMLを読み込んだ配列
+ * @access  public
+ * @since
+ */
+function _GetXml($filename, $otherList = null) {
+	_Log("[_GetXml] start.", 4);
+
+	//フォームXMLを読み込む。
+	$allList = _Xml2Array($filename);
+	_Log("[_GetXml] (初期状態)\$allList = \n'".print_r($allList,true)."'", 4);
+
+	//※sin-kaisha.xsrv.jpサーバ用(seturitu-kun.comサーバ用)
+	//XMLを配列にするときに、UTF-8に変換されるたため、ここでEUC-JPに戻す。
+	$allList = _Mb_Convert_EncodingForArray($allList, 'EUC-JP', 'UTF-8');
+	_Log("[_GetXml] (文字エンコーディング変換後'UTF-8'→'EUC-JP')\$allList = \n'".print_r($allList,true)."'", 4);
+
+	//配列を修正する。
+	$allList = _ReviseXml($allList);
+	_Log("[_GetXml] (修正後'input')\$allList = \n'".print_r($allList,true)."'", 4);
+	$allList = _ReviseXml($allList, 'item');
+	_Log("[_GetXml] (修正後'item')\$allList = \n'".print_r($allList,true)."'", 4);
+	$allList = _ReviseXml($allList, 'show_item');
+	_Log("[_GetXml] (修正後'show_item')\$allList = \n'".print_r($allList,true)."'", 4);
+	//DB情報を設定する。
+	$allList = _SetDB($allList, $otherList);
+	_Log("[_GetXml] (DBセット後)\$allList = \n'".print_r($allList,true)."'", 4);
+
+	_Log("[_GetXml] end.", 4);
+	return $allList;
+}
+
+/**
+ * XMLを読み込んだ配列を修正する。
+ * inputが一つの場合、inputの配下に一つ配列を入れる。
+ *
+ * @param	array	$list	XMLを読み込んだ配列
+ * @return	array	XMLを読み込んだ配列
+ * @access  public
+ * @since
+ */
+function _ReviseXml($list, $targetKey = 'input') {
+	_Log("[_ReviseXml] start.", 4);
+
+	if (_IsNull($list)) {
+		_Log("[_ReviseXml] list is null.", 4);
+		_Log("[_ReviseXml] end.", 4);
+		return $list;
+	}
+
+	foreach ($list as $key => $value) {
+
+		_Log("[_ReviseXml] key = '".$key."'", 4);
+		_Log("[_ReviseXml] gettype(key) = '".gettype($key)."'", 4);
+
+		//キーには数字の場合があるので、文字列に変更する。
+		//数字の0の場合、以下のswitchで'input'と判断されてしまう。
+		$key .= "";
+
+		switch ($key) {
+			case $targetKey:
+
+				_Log("[_ReviseXml] key is '".$targetKey."'", 4);
+
+				switch (gettype($value)) {
+					case 'array':
+						$checkFlag = false;
+						foreach ($value as $inKey => $inValue) {
+
+							_Log("[_ReviseXml] ".$targetKey." Key = '".$inKey."'", 4);
+							_Log("[_ReviseXml] gettype(".$targetKey." Key) = '".gettype($inKey)."'", 4);
+
+
+							//添字が数字か？
+							if (!preg_match ('/^[0-9]+$/', $inKey)) {
+								$checkFlag = true;
+
+								_Log("[_ReviseXml] ".$targetKey." Key is '[0-9]'", 4);
+
+								break;
+							}
+						}
+						//添字が数字以外の場合、配列の詰め替えをする。
+						//inputの配下に一つ配列を入れる。
+						if ($checkFlag) {
+							$list[$key] = array($value);
+						}
+						break;
+					default:
+						break;
+				}
+				break;
+			default:
+
+				_Log("[_ReviseXml] key is 'default'", 4);
+
+				switch (gettype($value)) {
+					case 'array':
+						$list[$key] = _ReviseXml($value, $targetKey);
+						break;
+					default:
+						break;
+				}
+				break;
+		}
+
+	}
+
+
+	_Log("[_ReviseXml] end.", 4);
+
+	return $list;
+}
+
+
+/**
+ * XMLを読み込んだ配列にDBの情報を設定する。
+ * 添字が"mst_name"の値は、テーブル名になっているので、そのテーブルを情報を取得する。
+ * 取得した情報は、添字"list"に設定する。
+ *
+ * @param	array	$list		XMLを読み込んだ配列
+ * @param	array	$otherList	その他に設定したい情報
+ * @return	array	XMLを読み込んだ配列
+ * @access  public
+ * @since
+ */
+function _SetDB($list, $otherList = null) {
+	if (_IsNull($list)) return $list;
+
+	foreach ($list as $key => $value) {
+		switch (gettype($value)) {
+			case 'array':
+				$list[$key] = _SetDB($value, $otherList);
+				break;
+			default:
+				if ($key == 'tbl_name') {
+
+					$condition = null;
+					$keyFieldName = "id";
+					$order = "lpad(show_order,10,'0')";
+					if (isset($list['list_condition'])) {
+
+						if (isset($list['list_condition']['sort_order'])) {
+							if (!_IsNull($list['list_condition']['sort_order'])) {
+								$order = $list['list_condition']['sort_order'];
+							}
+							unset($list['list_condition']['sort_order']);
+						}
+						if (isset($list['list_condition']['key_field_name'])) {
+							if (!_IsNull($list['list_condition']['key_field_name'])) {
+								$keyFieldName = $list['list_condition']['key_field_name'];
+							}
+							unset($list['list_condition']['key_field_name']);
+						}
+
+						$condition = array();
+						$condition = $list['list_condition'];
+
+					}
+					$undeleteOnly = false;
+					$delFlagFieldName = 'del_flag';
+
+					$buf = _DB_GetList($value, $condition, $undeleteOnly, $order, $delFlagFieldName, $keyFieldName);
+					$list['list'] = $buf;
+
+				} elseif ($key == 'mst_name') {
+
+					//削除フラグを設定する。
+					$undeleteOnly = true;
+					if (isset($list['list_condition']['undeleteOnly'])) {
+						if ($list['list_condition']['undeleteOnly'] != "") {
+							$undeleteOnly = $list['list_condition']['undeleteOnly'];
+						}
+					}
+
+					$buf = null;
+					switch ($value) {
+						case 'year':
+							$buf = _GetYearArray(date('Y'), date('Y') + 1);
+							break;
+						case 'year_system':
+							$buf = _GetYearArray(SYSTEM_START_YEAR, date('Y') + 3);
+							break;
+						case 'year_system_50':
+							$buf = _GetYearArray(SYSTEM_START_YEAR - 50, date('Y') + 3);
+							break;
+						case 'year_birth':
+							$buf = _GetYearArray(date('Y')-100, date('Y'));
+							break;
+						case 'year_birth_jp':
+							$buf = _GetYearArray(date('Y')-100, date('Y'));
+							foreach ($buf as $bufKey => $bufInfo) {
+								$jpY = _ConvertAD2Jp($bufInfo['name']);
+								$bufInfo['name'] .= "(".$jpY.")";
+								$buf[$bufKey] = $bufInfo;
+							}
+							break;
+						case 'year_found_jp':
+							$buf = _GetYearArray(SYSTEM_START_YEAR, date('Y') + 1);
+							foreach ($buf as $bufKey => $bufInfo) {
+								$bufInfo['name_no_jp'] = $bufInfo['name'];
+								$jpY = _ConvertAD2Jp($bufInfo['name']);
+								$bufInfo['name'] .= "(".$jpY.")";
+								$buf[$bufKey] = $bufInfo;
+							}
+							krsort($buf, SORT_NUMERIC);
+							break;
+						case 'month':
+							$buf = _GetMonthArray();
+							break;
+						case 'day':
+							$buf = _GetDayArray();
+							break;
+						case 'hour':
+							$buf = _GetNumberArray(0, 23);
+							break;
+						case 'minute':
+							$buf = _GetNumberArray(0, 59, 5);
+							break;
+						case 'number_10':
+							$buf = _GetNumberArray(1, 10);
+							break;
+						case 'number_0_10':
+							$buf = _GetNumberArray(0, 10);
+							break;
+						case 'number_0null_10':
+							$buf = _GetNumberArray(0, 10);
+							$buf[0]['name'] = null;
+							break;
+						case 'del_flag_yes':
+							$buf = array(DELETE_FLAG_YES => array('id' => DELETE_FLAG_YES, 'name' => DELETE_FLAG_YES_NAME, 'no_name' => ''));
+							break;
+						case 'del_flag':
+							$buf = array(
+										 DELETE_FLAG_NO => array('id' => DELETE_FLAG_NO, 'name' => DELETE_FLAG_NO_NAME, 'no_name' => '')
+										,DELETE_FLAG_YES => array('id' => DELETE_FLAG_YES, 'name' => DELETE_FLAG_YES_NAME, 'no_name' => '')
+										);
+							break;
+						case 'mst_plan_abc':
+							$condition = array();
+							$condition['company_id'] = MST_COMPANY_ID_ABC;
+							$buf = _GetMstPlan($condition, null, $undeleteOnly);
+							break;
+						case 'mst_plan':
+							$buf = _GetMstPlan(null, null, $undeleteOnly);
+							break;
+						case 'mst_class_abc':
+							$condition = array();
+							$condition['company_id'] = MST_COMPANY_ID_ABC;
+							$buf = _GetMstClass($condition, null, $undeleteOnly);
+							break;
+//						case 'mst_option':
+//							$buf = _GetMstOptionList($undeleteOnly);
+//							break;
+						case 'mst_plan_details':
+							$buf = _GetMstPlanDetails(null, null, $undeleteOnly);
+							break;
+						case 'other_list':
+							if (!_IsNull($otherList)) {
+								$buf = $otherList[$list['other_list_key']];
+							}
+							break;
+						case 'user_auth':
+							$buf = array(
+									AUTH_NON => array('id' => AUTH_NON, 'name' => AUTH_NON_NAME, 'no_name' => '')
+									,AUTH_CLIENT => array('id' => AUTH_CLIENT, 'name' => AUTH_CLIENT_NAME, 'no_name' => '')
+									,AUTH_WOOROM => array('id' => AUTH_WOOROM, 'name' => AUTH_WOOROM_NAME, 'no_name' => '')
+									);
+							break;
+						default:
+							$buf = _GetMasterList($value, $undeleteOnly);
+							break;
+					}
+					$list['list'] = $buf;
+				}
+				break;
+		}
+	}
+
+	return $list;
+}
+
+
+/**
+ * XMLを読み込んだ配列を修正する。
+ * 指定したタグを削除する。
+ *
+ * @param	array	$list		XMLを読み込んだ配列
+ * @param	string	$targetKey	削除するキー
+ * @return	array	XMLを読み込んだ配列
+ * @access  public
+ * @since
+ */
+function _DeleteXmlByTag($list, $targetKey) {
+	_Log("[_DeleteXmlByTag] start.", 4);
+
+	if (_IsNull($list)) {
+		_Log("[_DeleteXmlByTag] list is null.", 4);
+		_Log("[_DeleteXmlByTag] end.", 4);
+		return $list;
+	}
+
+	if (_IsNull($targetKey)) {
+		_Log("[_DeleteXmlByTag] Delete Tag is null.", 4);
+		_Log("[_DeleteXmlByTag] end.", 4);
+		return $list;
+	}
+
+
+	foreach ($list as $key => $value) {
+
+		_Log("[_DeleteXmlByTag] key = '".$key."'", 4);
+		_Log("[_DeleteXmlByTag] gettype(value) = '".gettype($value)."'", 4);
+
+		//キーには数字の場合があるので、文字列に変更する。
+		//数字の0の場合、以下のswitchで'input'と判断されてしまう。
+		$key .= "";
+
+		switch ($key) {
+			case $targetKey:
+
+				_Log("[_DeleteXmlByTag] key is '".$targetKey."' ---> deleted.", 4);
+				unset($list[$key]);
+				break;
+			default:
+
+				_Log("[_DeleteXmlByTag] key is 'default'", 4);
+
+				switch (gettype($value)) {
+					case 'array':
+						$list[$key] = _DeleteXmlByTag($value, $targetKey);
+						break;
+					default:
+						break;
+				}
+				break;
+		}
+
+	}
+
+	_Log("[_DeleteXmlByTag] end.", 4);
+
+	return $list;
+}
+
+
+/**
+ * XMLを読み込んだ配列を修正する。
+ * 指定したタグが指定した値の場合、削除する。
+ *
+ * @param	array	$list			XMLを読み込んだ配列
+ * @param	string	$targetKey		削除するタグ
+ * @param	string	$targetValue	削除するタグの値
+ * @param	inf		$targetMode		削除するタグの値の判断モード{1:完全一致/2:あいまい一致}
+ * @return	array	XMLを読み込んだ配列
+ * @access  public
+ * @since
+ */
+function _DeleteXmlByTagAndValue($list, $targetKey, $targetValue, $targetMode = 1) {
+	_Log("[_DeleteXmlByTagAndValue] start.", 4);
+
+	if (_IsNull($list)) {
+		_Log("[_DeleteXmlByTagAndValue] list is null.", 4);
+		_Log("[_DeleteXmlByTagAndValue] end.", 4);
+		return $list;
+	}
+
+	if (_IsNull($targetKey)) {
+		_Log("[_DeleteXmlByTagAndValue] Delete Tag is null.", 4);
+		_Log("[_DeleteXmlByTagAndValue] end.", 4);
+		return $list;
+	}
+
+	if (_IsNull($targetValue)) {
+		_Log("[_DeleteXmlByTagAndValue] Delete Tag's Value is null.", 4);
+		_Log("[_DeleteXmlByTagAndValue] end.", 4);
+		return $list;
+	}
+
+
+	foreach ($list as $key => $value) {
+
+		_Log("[_DeleteXmlByTagAndValue] key = '".$key."'", 4);
+		_Log("[_DeleteXmlByTagAndValue] value = '".$value."'", 4);
+		_Log("[_DeleteXmlByTagAndValue] gettype(value) = '".gettype($value)."'", 4);
+
+		switch (gettype($value)) {
+			case 'array':
+				$res = _DeleteXmlByTagAndValue($value, $targetKey, $targetValue, $targetMode);
+				if (is_null($res)) {
+					unset($list[$key]);
+				} else {
+					$list[$key] = $res;
+				}
+				break;
+			default:
+				//キーには数字の場合があるので、文字列に変更する。
+				//数字の0の場合、以下のswitchで'input'と判断されてしまう。
+				$key .= "";
+
+				switch ($key) {
+					case $targetKey:
+						_Log("[_DeleteXmlByTagAndValue] key is '".$targetKey."' --->", 4);
+						$value .= "";
+						switch ($targetMode) {
+							case 2:
+								if (preg_match('/'.$targetValue.'/', $value)) {
+									_Log("[_DeleteXmlByTagAndValue] value is '".$targetValue."' (preg_match) ---> deleted.", 3);
+									return null;
+								}
+								break;
+							default:
+								if ($value == $targetValue) {
+									_Log("[_DeleteXmlByTagAndValue] value is '".$targetValue."' ---> deleted.", 3);
+									return null;
+								}
+								break;
+						}
+						break;
+				}
+				break;
+		}
+	}
+
+	_Log("[_DeleteXmlByTagAndValue] end.", 4);
+
+	return $list;
+}
+
+
+/**
+ * 入力用に表示するテーブル(フォーム)を作成する。
+ *
+ * @param	int		$mode			動作モード{1:入力/2:確認/3:完了/4:エラー}
+ * @param	array	$allList		XMLを読み込んだ配列
+ * @param	array	$info			入力した値が格納されている配列
+ * @param	int		&$tabindex		タブインデックス
+ * @param	array	$loginInfo		ログイン情報
+ * @param	string	$message		メッセージ
+ * @param	boolean	$errorFlag		エラーフラグ
+ * @param	boolean	$allShowFlag	全て表示するか？hidden項目も表示するか？{true:全て表示する。/false:XML設定、権限による表示有無に従う。}
+ * @param	string	$clientName		クライアント名(サイト名)
+ * @param	string	$clientMail		クライアントE-Mail
+ * @param	string	$urlBase		"トップに戻る"に使用するURL
+ * @return	なし
+ * @access  public
+ * @since
+ */
+function _GetFormTable($mode, $allList, $info, &$tabindex, $loginInfo = null, $message = null, $errorFlag = false, $allShowFlag = false, $clientName = null, $clientMail = null, $urlBase = null) {
+
+	$res = null;
+
+//	if (isset($allList['title']) && !_IsNull($allList['title'])) {
+//		//タイトルを設定する。
+//		$res .= "<h2>";
+//		$res .= $allList['title'];
+//		$res .= "</h2>";
+//		$res .= "\n";
+//
+////		unset($allList['title']);
+//	}
+
+
+
+//	if (_IsNull($loginInfo)) {
+		//管理画面以外の場合(問合せフォームなど)
+
+		//メッセージが有る場合、メッセージを表示する。
+//		if ($mode != 3) {
+			if (!_IsNull($message)) {
+				$addClass = null;
+				//エラーが有る場合、文字色を変更する。
+				if ($errorFlag) $addClass = "errorMessage";
+				$res .= "<div class=\"message ".$addClass."\">";
+				$res .= "\n";
+				$res .= nl2br($message);
+				$res .= "\n";
+				$res .= "</div>";
+				$res .= "\n";
+			}
+//		}
+
+
+	switch ($allList['xml_name']) {
+		case XML_NAME_CMP:
+		case XML_NAME_CMP_NAME:
+		case XML_NAME_CMP_CAPITAL:
+		case XML_NAME_CMP_ADDRESS:
+		case XML_NAME_CMP_PURPOSE:
+		case XML_NAME_CMP_BOARD_BASE:
+		case XML_NAME_CMP_BOARD_NAME:
+		case XML_NAME_CMP_PROMOTER:
+		case XML_NAME_CMP_PROMOTER_INVESTMENT:
+		case XML_NAME_CMP_ALL:
+			//株式会社設立情報
+		case XML_NAME_LLC:
+		case XML_NAME_LLC_NAME:
+		case XML_NAME_LLC_CAPITAL:
+		case XML_NAME_LLC_ADDRESS:
+		case XML_NAME_LLC_ARTICLE:
+		case XML_NAME_LLC_PURPOSE:
+		case XML_NAME_LLC_BOARD_BASE:
+		case XML_NAME_LLC_BOARD_NAME:
+		case XML_NAME_LLC_PROMOTER:
+		case XML_NAME_LLC_PROMOTER_INVESTMENT:
+		case XML_NAME_LLC_ALL:
+			//合同会社設立情報
+			if ($mode == 1 || $mode == 2) {
+				//説明を設定する。
+				$res .= "<div class=\"explain\">";
+				$res .= "\n";
+				$res .= "※&nbsp;印は必須項目です。";
+				$res .= "\n";
+				$res .= "</div>";
+				$res .= "\n";
+			}
+
+			break;
+		case XML_NAME_SEAL:
+		case XML_NAME_SEAL_SET:
+			break;
+		case XML_NAME_SEAL_IMPRINT:
+		case XML_NAME_SEAL_NAME:
+		case XML_NAME_SEAL_ALL:
+			//法人印注文情報
+		case XML_NAME_PAY:
+			//お支払い報告情報
+		case XML_NAME_BUY:
+			//ご利用料金のお支払い情報
+		case XML_NAME_INQ:
+			//問合せ情報
+		case XML_NAME_LINK:
+			//相互リンク情報
+			if ($mode == 1) {
+				//説明を設定する。
+				$res .= "<div class=\"explain\">";
+				$res .= "\n";
+				$res .= "※&nbsp;印は必須項目です。";
+				$res .= "\n";
+				$res .= "</div>";
+				$res .= "\n";
+			} elseif ($mode == 2) {
+				$res .= "<div class=\"explain\">";
+				$res .= "\n";
+				$res .= "※入力内容を確認して、「送信」ボタンを押してください。";
+				$res .= "\n";
+				$res .= "</div>";
+				$res .= "\n";
+			}
+
+			break;
+		case XML_NAME_ARTICLE:
+			//定款認証情報
+		case XML_NAME_ARTICLE_LLC:
+			//定款認証情報(合同会社用)
+			if ($mode == 1) {
+				//説明を設定する。
+				$res .= "<div class=\"explain\">";
+				$res .= "\n";
+				$res .= "※&nbsp;印は必須項目です。";
+				$res .= "\n";
+				$res .= "</div>";
+				$res .= "\n";
+			} elseif ($mode == 2) {
+				$res .= "<div class=\"explain\">";
+				$res .= "\n";
+				$res .= "※入力内容を確認して、「送信」ボタンを押してください。";
+				$res .= "\n";
+				$res .= "<br />";
+				$res .= "\n";
+				$res .= "※下記の入力内容で行政書士に電子定款認証を依頼します。";
+				$res .= "\n";
+				$res .= "</div>";
+				$res .= "\n";
+			}
+
+			break;
+
+		case XML_NAME_USER:
+			//ユーザー情報
+			//ログイン情報が渡された場合→ログイン後の「ユーザーページ」が表示された。
+			//ログイン情報が渡されない場合→ログイン前の「ユーザー登録」が表示された。
+		case XML_NAME_USER_OEM:
+			//ユーザー情報(OEM・代理店制度用)
+			if (_IsNull($loginInfo) || !isset($loginInfo['usr_user_id'])) {
+				if ($mode == 1) {
+					//説明を設定する。
+					$res .= "<div class=\"explain\">";
+					$res .= "\n";
+					$res .= "<span style=\"color:#f00;font-weight:bold\">【ご注意】<br />お申し込み後に自動返信メールが届かない場合は、迷惑メールとして扱われている事がありますのでご確認ください。<br />ご不明な場合はお電話にてお問い合わせください。(03-3586-1523)</span>";
+					$res .= "\n";
+					$res .= "<br />";
+					$res .= "<br />";
+					$res .= "\n";
+					$res .= "※&nbsp;印は必須項目です。";
+					$res .= "\n";
+					$res .= "</div>";
+					$res .= "\n";
+				} elseif ($mode == 2) {
+					$res .= "<div class=\"explain\">";
+					$res .= "\n";
+					$res .= "※入力内容を確認して、「登録」ボタンを押してください。";
+					$res .= "\n";
+					$res .= "</div>";
+					$res .= "\n";
+				}
+			} else {
+				if ($mode == 1) {
+					//説明を設定する。
+					$res .= "<div class=\"explain\">";
+					$res .= "\n";
+					$res .= "※&nbsp;印は必須項目です。";
+					$res .= "\n";
+					$res .= "</div>";
+					$res .= "\n";
+				} elseif ($mode == 2) {
+					$res .= "<div class=\"explain\">";
+					$res .= "\n";
+					$res .= "※入力内容を確認して、「保存」ボタンを押してください。";
+					$res .= "\n";
+					$res .= "</div>";
+					$res .= "\n";
+				}
+			}
+			break;
+
+		case XML_NAME_CANCEL:
+			//登録解除
+			if ($mode == 1) {
+				//説明を設定する。
+				$res .= "<div class=\"explain\">";
+				$res .= "\n";
+				$res .= "※&nbsp;印は必須項目です。";
+				$res .= "\n";
+				$res .= "</div>";
+				$res .= "\n";
+			} elseif ($mode == 2) {
+				$res .= "<div class=\"explain\">";
+				$res .= "\n";
+				$res .= "※入力内容を確認して、「送信」ボタンを押してください。";
+				$res .= "<br />";
+				$res .= "※「送信」ボタンを押した後は、全ての情報が削除されます。";
+				$res .= "\n";
+				$res .= "</div>";
+				$res .= "\n";
+			}
+			break;
+
+		default:
+			if ($mode == 1) {
+				//説明を設定する。
+				$res .= "<div class=\"explain\">";
+				$res .= "\n";
+				$res .= "※&nbsp;印は必須項目です。";
+				$res .= "\n";
+				$res .= "</div>";
+				$res .= "\n";
+			} elseif ($mode == 2) {
+				$res .= "<div class=\"explain\">";
+				$res .= "\n";
+				$res .= "※入力内容を確認して、「登録」ボタンを押してください。";
+				$res .= "\n";
+				$res .= "</div>";
+				$res .= "\n";
+			}
+			break;
+	}
+
+
+//	} else {
+//		//管理画面の場合
+//
+//		//メッセージが有る場合、メッセージを表示する。
+//		if (!_IsNull($message)) {
+//			$addClass = null;
+//			//エラーが有る場合、文字色を変更する。
+//			if ($errorFlag) $addClass = "errorMessage";
+//			$res .= "<div class=\"message ".$addClass."\">";
+//			$res .= "\n";
+//			$res .= nl2br($message);
+//			$res .= "\n";
+//			$res .= "</div>";
+//			$res .= "\n";
+//		}
+//
+//		if ($mode == 1) {
+//			//説明を設定する。
+//			$res .= "<div class=\"explain\">";
+//			$res .= "\n";
+//			$res .= "<a href=\"#\" title=\"説明\" onclick=\"openBox('explain_sub', 'explain', 'explain_close'); return false;\">[説明]</a>";
+//			$res .= "\n";
+//			$res .= "<br />";
+//			$res .= "\n";
+//			$res .= "<ul id=\"explain_sub\">";
+//			$res .= "\n";
+//			$res .= "<li>";
+//			$res .= "※は、必須項目です。";
+//			$res .= "</li>";
+//			$res .= "\n";
+//			$res .= "</ul>";
+//			$res .= "\n";
+//			$res .= "</div>";
+//			$res .= "\n";
+//		}
+//	}
+
+
+	$addAction = null;
+	switch ($allList['xml_name']) {
+		case XML_NAME_USER:
+			//ユーザー情報
+			//ログイン情報が渡された場合→ログイン後の「ユーザーページ」が表示された。
+			//ログイン情報が渡されない場合→ログイン前の「ユーザー登録」が表示された。
+		case XML_NAME_USER_OEM:
+			//ユーザー情報(OEM・代理店制度用)
+			if (_IsNull($loginInfo) || !isset($loginInfo['usr_user_id'])) {
+			} else {
+				$addAction .= "#mc_ui_update";
+			}
+			break;
+		case XML_NAME_CANCEL:
+			//登録解除
+			$addAction .= "#mc_ui_cancel";
+			break;
+	}
+
+	$res .= "<form id=\"frmUpdate\" name=\"frmUpdate\" action=\"".$_SERVER['PHP_SELF'].$addAction."\" method=\"post\" enctype=\"multipart/form-data\">";
+	$res .= "\n";
+
+	$res .= "<div class=\"formWrapper\">";
+	$res .= "\n";
+
+	$res .= "<div class=\"formList\">";
+	$res .= "\n";
+
+	//動作モードによって、表示する内容を切り替える。
+	switch ($mode) {
+	case 1://入力
+		$res .= _CreateTableInputAll($allList, $info, $tabindex, $loginInfo, $allShowFlag);
+		break;
+	case 2://確認
+		$res .= _CreateTableConfirmAll($allList, $info, $tabindex, $loginInfo, $allShowFlag);
+		break;
+	case 3://完了
+		$res .= _CreateTableEnd($message, $info, $loginInfo, $allShowFlag, $clientName, $clientMail, $urlBase);
+
+		switch ($allList['xml_name']) {
+			case XML_NAME_CART:
+				//カート情報
+				break;
+			case XML_NAME_INQ:
+				//問合せ情報
+			case XML_NAME_LINK:
+				//相互リンク情報
+			case XML_NAME_INQ_MOBILE:
+				//問合せ情報(携帯用)
+				break;
+			case XML_NAME_CMP:
+			case XML_NAME_CMP_NAME:
+			case XML_NAME_CMP_CAPITAL:
+			case XML_NAME_CMP_ADDRESS:
+			case XML_NAME_CMP_PURPOSE:
+			case XML_NAME_CMP_BOARD_BASE:
+			case XML_NAME_CMP_BOARD_NAME:
+			case XML_NAME_CMP_PROMOTER:
+			case XML_NAME_CMP_PROMOTER_INVESTMENT:
+			case XML_NAME_CMP_ALL:
+				//株式会社設立情報
+				break;
+	
+			case XML_NAME_LLC:
+			case XML_NAME_LLC_NAME:
+			case XML_NAME_LLC_CAPITAL:
+			case XML_NAME_LLC_ADDRESS:
+			case XML_NAME_LLC_ARTICLE:
+			case XML_NAME_LLC_PURPOSE:
+			case XML_NAME_LLC_BOARD_BASE:
+			case XML_NAME_LLC_BOARD_NAME:
+			case XML_NAME_LLC_PROMOTER:
+			case XML_NAME_LLC_PROMOTER_INVESTMENT:
+			case XML_NAME_LLC_ALL:
+				//合同会社設立情報
+				break;
+			case XML_NAME_SEAL:
+			case XML_NAME_SEAL_SET:
+			case XML_NAME_SEAL_IMPRINT:
+			case XML_NAME_SEAL_NAME:
+			case XML_NAME_SEAL_ALL:
+				//法人印注文情報
+//_Log("[_GetFormTable] 1 \$info = '\n".print_r($info,true)."\n'");
+				if (isset($info['update']['tbl_seal_name']['sel_nam_company_name']) && !_IsNull($info['update']['tbl_seal_name']['sel_nam_company_name'])) {
+					//会社テーブル
+					$condition = null;
+					$condition['cmp_company_id'] = $info['update']['tbl_seal_name']['sel_nam_company_name'];//会社ID
+					$tblCompanyInfo = _DB_GetInfo('tbl_company', $condition, true, 'cmp_del_flag');
+					if (!_IsNull($tblCompanyInfo)) {
+						$url = null;
+						//会社タイプID
+						switch ($tblCompanyInfo['cmp_company_type_id']) {
+						case MST_COMPANY_TYPE_ID_CMP://株式会社
+							$url = "../user/company/article/";
+							break;
+						case MST_COMPANY_TYPE_ID_LLC://合同会社
+							$url = "../user/llc/info/?article";
+							break;
+						}
+						if (!_IsNull($url)) {
+							$res .= "<div class=\"button\">";
+							$res .= "\n";
+							$res .= "<input class=\"submit\" type=\"button\" value=\"次のステップへ\" tabindex=\"".(++$tabindex)."\" onclick=\"window.location.href='".$url."';\" />";
+							$res .= "\n";
+							$res .= "</div>";
+							$res .= "\n";
+						}
+					}
+				}
+				break;
+			case XML_NAME_PAY:
+				//お支払い報告情報
+			case XML_NAME_BUY:
+				//ご利用料金のお支払い情報
+			case XML_NAME_ARTICLE:
+				//定款認証情報
+			case XML_NAME_ARTICLE_LLC:
+				//定款認証情報(合同会社用)
+				break;
+			case XML_NAME_USER:
+				//ユーザー情報
+				//ログイン情報が渡された場合→ログイン後の「ユーザーページ」が表示された。
+				//ログイン情報が渡されない場合→ログイン前の「ユーザー登録」が表示された。
+			case XML_NAME_USER_OEM:
+				//ユーザー情報(OEM・代理店制度用)
+				break;
+			case XML_NAME_CANCEL:
+				//登録解除
+				break;
+			case XML_NAME_ITEM:
+				//商品情報
+			default:
+				break;
+		}
+		break;
+	case 4://エラー
+		break;
+	}
+
+	$res .= "\n";
+	$res .= "</div>";//<!-- End formList -->
+	$res .= "\n";
+	$res .= "</div>";//<!-- End formWrapper -->
+	$res .= "\n";
+	$res .= "</form>";
+
+
+	//動作モードによって、表示する内容を切り替える。
+	switch ($mode) {
+	case 20://確認(簡易)
+		$res = null;
+		$res .= _CreateTableConfirmSimpleAll($allList, $info, $tabindex, $loginInfo, $allShowFlag);
+		break;
+	}
+
+
+
+	return $res;
+}
+
+
+/**
+ * 入力用に表示するテーブル(フォーム)を作成する。
+ *
+ * @param	array	$allList		XMLを読み込んだ配列
+ * @param	array	$info			入力した値が格納されている配列
+ * @param	int		&$tabindex		タブインデックス
+ * @param	array	$loginInfo		ログイン情報
+ * @param	boolean	$allShowFlag	全て表示するか？hidden項目も表示するか？{true:全て表示する。/false:XML設定、権限による表示有無に従う。}
+ * @return	なし
+ * @access  public
+ * @since
+ */
+function _CreateTableInputAll($allList, $info, &$tabindex, $loginInfo = null, $allShowFlag = false) {
+
+	$res = null;
+
+	foreach($allList as $key => $itemList) {
+		if ($itemList['confirm_only']) continue;
+
+		//交通事故サイト用(これは特別です。)------------------- start
+		//権限チェック
+		//ログイン情報が渡された場合
+		if (!_IsNull($loginInfo)) {
+			//WOOROM権限以外の場合
+			if ($loginInfo['usr_auth_id'] != AUTH_WOOROM) {
+				//WOOROM権限のみ表示可の項目の場合
+				if (isset($itemList['auth']) && $itemList['auth'] == AUTH_WOOROM) {
+					//非表示にする。
+					continue;
+				}
+			}
+		}
+		//交通事故サイト用(これは特別です。)------------------- end
+
+
+		$multipleFlag = false;
+		$multipleCount = 1;
+
+		$resBufTitle = null;
+		if (is_array($itemList)) {
+			if (isset($itemList['sub_title']) && !_IsNull($itemList['sub_title'])) {
+				$resBufTitle .= "<h3>";
+				$resBufTitle .= $itemList['sub_title'];
+				$resBufTitle .= "</h3>";
+				$resBufTitle .= "\n";
+			}
+
+			//複数入力か？
+			if (isset($itemList['multiple']) && !_IsNull($itemList['multiple']) && _IsHalfSizeNumeric($itemList['multiple'])) {
+				$multipleFlag = true;
+				$multipleCount = $itemList['multiple'];
+
+				//複数項目がJavaScriptで追加される場合もある。
+				if (isset($info['update'][$key]) && is_array($info['update'][$key])) {
+//					if ($multipleCount < count($info['update'][$key])) {
+//						$multipleCount = count($info['update'][$key]);
+//					}
+					$multipleCount = count($info['update'][$key]);
+				}
+			}
+
+		}
+
+
+		$resBuf = null;
+		for ($tIdx = 0; $tIdx < $multipleCount; $tIdx++) {
+			$resBuf .= _CreateTableInput($itemList['item'], $info, $tabindex, $key, $loginInfo, $allShowFlag, $multipleFlag, $tIdx);
+		}
+
+
+		if (is_array($itemList)) {
+			if (isset($itemList['prefix']) && !_IsNull($itemList['prefix'])) {
+				$resBuf = $itemList['prefix']."\n".$resBuf;
+			}
+			if (isset($itemList['prefix_html']) && !_IsNull($itemList['prefix_html'])) {
+				$resBuf = $itemList['prefix_html']."\n".$resBuf;
+			}
+			if (isset($itemList['prefix_msg']) && !_IsNull($itemList['prefix_msg'])) {
+				$resBuf = $itemList['prefix_msg']."\n".$resBuf;
+			}
+
+
+			if (isset($itemList['suffix']) && !_IsNull($itemList['suffix'])) {
+				if (!_IsNull($resBuf)) $resBuf .= "\n";
+				$resBuf .= $itemList['suffix'];
+			}
+			if (isset($itemList['suffix_html']) && !_IsNull($itemList['suffix_html'])) {
+				if (!_IsNull($resBuf)) $resBuf .= "\n";
+				$resBuf .= $itemList['suffix_html'];
+			}
+			if (isset($itemList['suffix_msg']) && !_IsNull($itemList['suffix_msg'])) {
+				if (!_IsNull($resBuf)) $resBuf .= "\n";
+				$resBuf .= $itemList['suffix_msg'];
+			}
+
+		}
+
+		if (!_IsNull($resBufTitle) || !_IsNull($resBuf)) {
+			$res .= "<div id=\"".$key."\">";
+			$res .= "\n";
+			$res .= $resBufTitle;
+			$res .= $resBuf;
+			$res .= "</div>";
+			$res .= "\n";
+		}
+
+	}
+
+	switch ($allList['xml_name']) {
+		case XML_NAME_CART:
+			//カート情報
+			$res .= "<div class=\"button\">";
+			$res .= "\n";
+
+			$tabindexConfirm = (++$tabindex);
+			$tabindexBack = (++$tabindex);
+
+			$res .= "<input class=\"submit\" type=\"submit\" name=\"back_cart\" value=\"　カートに戻る　\" tabindex=\"".$tabindexBack."\" />";
+			$res .= "\n";
+			$res .= "&nbsp;";
+			$res .= "<input class=\"submit\" type=\"submit\" name=\"confirm\" value=\"　確　認　\" tabindex=\"".$tabindexConfirm."\" />";
+			$res .= "\n";
+			$res .= "</div>";
+			$res .= "\n";
+			break;
+		case XML_NAME_LOGIN:
+			//ログイン情報
+			$res .= "<div class=\"button\">";
+			$res .= "\n";
+			$res .= "<input class=\"submit\" type=\"submit\" name=\"confirm\" value=\"　ログイン　\" tabindex=\"".(++$tabindex)."\" />";
+			$res .= "\n";
+			$res .= "</div>";
+			$res .= "\n";
+			break;
+		case XML_NAME_LOGIN_REMIND:
+			//ログインパスワード確認情報
+			$res .= "<div class=\"button\">";
+			$res .= "\n";
+			$res .= "<input class=\"submit\" type=\"submit\" name=\"confirm\" value=\"　送　信　\" tabindex=\"".(++$tabindex)."\" />";
+			$res .= "\n";
+			$res .= "</div>";
+			$res .= "\n";
+			break;
+		case XML_NAME_CMP:
+		case XML_NAME_CMP_NAME:
+		case XML_NAME_CMP_CAPITAL:
+		case XML_NAME_CMP_ADDRESS:
+		case XML_NAME_CMP_PURPOSE:
+		case XML_NAME_CMP_BOARD_BASE:
+		case XML_NAME_CMP_BOARD_NAME:
+		case XML_NAME_CMP_PROMOTER:
+		case XML_NAME_CMP_PROMOTER_INVESTMENT:
+		case XML_NAME_CMP_ALL:
+			//株式会社設立情報
+		case XML_NAME_LLC:
+		case XML_NAME_LLC_NAME:
+		case XML_NAME_LLC_CAPITAL:
+		case XML_NAME_LLC_ADDRESS:
+//		case XML_NAME_LLC_ARTICLE:
+		case XML_NAME_LLC_PURPOSE:
+		case XML_NAME_LLC_BOARD_BASE:
+		case XML_NAME_LLC_BOARD_NAME:
+		case XML_NAME_LLC_PROMOTER:
+		case XML_NAME_LLC_PROMOTER_INVESTMENT:
+		case XML_NAME_LLC_ALL:
+			//合同会社設立情報
+			$res .= "<div class=\"button\">";
+			$res .= "\n";
+			$res .= "<input id=\"btn_back\" class=\"submit\" type=\"submit\" name=\"back\" value=\"戻る(保存されません)\" tabindex=\"".(++$tabindex)."\" />";
+			$res .= "\n";
+			$res .= "&nbsp;";
+			$res .= "\n";
+			$res .= "<input id=\"btn_go\" class=\"submit\" type=\"submit\" name=\"go\" value=\"入力した内容を保存する\" tabindex=\"".(++$tabindex)."\" />";
+			$res .= "\n";
+			$res .= "&nbsp;";
+			$res .= "\n";
+			$res .= "<input id=\"btn_next\" class=\"submit\" type=\"submit\" name=\"next\" value=\"入力した内容を保存して、次へ\" tabindex=\"".(++$tabindex)."\" />";
+			$res .= "\n";
+			$res .= "</div>";
+			$res .= "\n";
+			break;
+
+		case XML_NAME_LLC_ARTICLE:
+			//合同会社設立情報[定款自治]
+			$res .= "<div class=\"button\">";
+			$res .= "\n";
+			$res .= "<input id=\"btn_go\" class=\"submit\" type=\"submit\" name=\"go\" value=\"入力した内容を保存する\" tabindex=\"".(++$tabindex)."\" />";
+			$res .= "\n";
+			$res .= "&nbsp;";
+			$res .= "\n";
+			$res .= "<input id=\"btn_next\" class=\"submit\" type=\"submit\" name=\"next\" value=\"入力した内容を保存して、次へ\" tabindex=\"".(++$tabindex)."\" />";
+			$res .= "\n";
+			$res .= "</div>";
+			$res .= "\n";
+			break;
+
+		case XML_NAME_SEAL:
+		case XML_NAME_SEAL_SET:
+		case XML_NAME_SEAL_IMPRINT:
+		case XML_NAME_SEAL_NAME:
+		case XML_NAME_SEAL_ALL:
+			//法人印注文情報
+			$res .= "<div class=\"button\">";
+			$res .= "\n";
+			$res .= "<input id=\"btn_back\" class=\"submit\" type=\"submit\" name=\"back\" value=\"　戻　る　\" tabindex=\"".(++$tabindex)."\" />";
+			$res .= "\n";
+			$res .= "&nbsp;";
+			$res .= "\n";
+			$res .= "<input id=\"btn_next\" class=\"submit\" type=\"submit\" name=\"next\" value=\"　次　へ　\" tabindex=\"".(++$tabindex)."\" />";
+			$res .= "\n";
+			$res .= "</div>";
+			$res .= "\n";
+			break;
+
+		case XML_NAME_USER:
+			//ユーザー情報
+			//ログイン情報が渡された場合→ログイン後の「ユーザーページ」が表示された。
+			//ログイン情報が渡されない場合→ログイン前の「ユーザー登録」が表示された。
+		case XML_NAME_USER_OEM:
+			//ユーザー情報(OEM・代理店制度用)
+			if (_IsNull($loginInfo) || !isset($loginInfo['usr_user_id'])) {
+				$res .= "<div id=\"frm_button\" class=\"button\">";
+				$res .= "\n";
+				$res .= "<input class=\"submit\" type=\"submit\" name=\"confirm\" value=\"　確　認　\" tabindex=\"".(++$tabindex)."\" />";
+				$res .= "\n";
+				$res .= "</div>";
+				$res .= "\n";
+			} else {
+				$res .= "<div id=\"frm_button\" class=\"button\">";
+				$res .= "\n";
+				$res .= "<input class=\"submit\" type=\"submit\" name=\"confirm\" value=\"更新する\" tabindex=\"".(++$tabindex)."\" />";
+				$res .= "\n";
+				$res .= "</div>";
+				$res .= "\n";
+			}
+			break;
+
+		case XML_NAME_CANCEL:
+			//登録解除
+			$res .= "<div id=\"frm_button\" class=\"button\">";
+			$res .= "\n";
+			$res .= "<input class=\"submit\" type=\"submit\" name=\"confirm\" value=\"解除する\" tabindex=\"".(++$tabindex)."\" />";
+			$res .= "\n";
+			$res .= "</div>";
+			$res .= "\n";
+			break;
+
+		case XML_NAME_PAY:
+			//お支払い報告情報
+		case XML_NAME_BUY:
+			//ご利用料金のお支払い情報
+		case XML_NAME_ARTICLE:
+			//定款認証情報
+		case XML_NAME_ARTICLE_LLC:
+			//定款認証情報(合同会社用)
+		case XML_NAME_ITEM:
+			//商品情報
+		default:
+			$res .= "<div id=\"frm_button\" class=\"button\">";
+			$res .= "\n";
+			$res .= "<input class=\"submit\" type=\"submit\" name=\"confirm\" value=\"　確　認　\" tabindex=\"".(++$tabindex)."\" />";
+			$res .= "\n";
+			$res .= "</div>";
+			$res .= "\n";
+			break;
+	}
+
+
+	//基本の条件をhiddenに設定する。
+	$condition = array();
+	$condition['condition'] = $info['condition'];
+	$res .= _CreateHidden($condition);
+
+	return $res;
+}
+
+
+/**
+ * 入力用に表示するテーブル(フォーム)を作成する。
+ *
+ * @param	array	$itemList			XMLを読み込んだ配列
+ * @param	array	$info				入力した値が格納されている配列
+ * @param	int		&$tabindex			タブインデックス
+ * @param	string	$baseName			name属性の基本となる文字列(名称)
+ * @param	array	$loginInfo			ログイン情報
+ * @param	boolean	$allShowFlag		全て表示するか？hidden項目も表示するか？{true:全て表示する。/false:XML設定、権限による表示有無に従う。}
+ * @param	boolean	$tableMultipleFlag	テーブル単位で複数表示か？{true:複数表示する。/false:複数ではない。
+ * @param	int		$tIdx				テーブル単位で複数表示の場合のインデックス。
+ * @return	なし
+ * @access  public
+ * @since
+ */
+function _CreateTableInput($itemList, $info, &$tabindex, $baseName, $loginInfo = null, $allShowFlag = false, $tableMultipleFlag = false, $tIdx = 0) {
+	if (_IsNull($itemList)) return null;
+	if (!is_array($itemList)) return null;
+
+	$logLevel = 3;
+
+	//テーブルのフィールド情報を取得する。→maxlengthに使用する。
+	$colInfo = _DB_GetColumnsInfo($baseName);
+
+	//権限で表示しない項目は、hiddenで設定する。
+	$hidden4auth = null;
+
+	$res = null;
+
+	$res .= "<table class=\"independent\">";
+	$res .= "\n";
+	$res .= "<colgroup class=\"colgroupHead\"></colgroup>";
+	$res .= "\n";
+	$res .= "<colgroup class=\"colgroupBody\"></colgroup>";
+	$res .= "\n";
+	$res .= "<tbody>";
+	$res .= "\n";
+
+	foreach ($itemList as $key => $item) {
+
+		$bufColInfo = $colInfo;
+
+		//複数入力か？
+		$multipleFlag = false;
+		$multipleCount = 1;
+		$multipleName = 'dummy_name';
+		if (isset($item['multiple']) && !_IsNull($item['multiple']) && _IsHalfSizeNumeric($item['multiple'])) {
+			$multipleFlag = true;
+			$multipleCount = $item['multiple'];
+
+			if (isset($item['multiple_name']) && !_IsNull($item['multiple_name'])) {
+				$multipleName = $item['multiple_name'];
+
+				//テーブルのフィールド情報を取得する。→maxlengthに使用する。
+				$colInfo4multiple = _DB_GetColumnsInfo($multipleName);
+
+				_Log("[_CheackInput] {multiple} テーブル名 = '".$multipleName."'", $logLevel);
+				_Log("[_CheackInput] {multiple} テーブルのフィールド情報 = '".print_r($colInfo4multiple,true)."'", $logLevel);
+
+				if (!_IsNull($colInfo4multiple)) $colInfo = $colInfo4multiple;
+
+				//複数項目がJavaScriptで追加される場合もある。
+//				if (isset($info['update'][$baseName][$tIdx][$multipleName]) && is_array($info['update'][$baseName][$tIdx][$multipleName])) {
+//					$multipleCount = count($info['update'][$baseName][$tIdx][$multipleName]);
+//				}
+
+				if ($tableMultipleFlag) {
+					if (isset($info['update'][$baseName][$tIdx][$multipleName]) && is_array($info['update'][$baseName][$tIdx][$multipleName])) {
+						$multipleCount = count($info['update'][$baseName][$tIdx][$multipleName]);
+					}
+				} else {
+					if (isset($info['update'][$baseName][$multipleName]) && is_array($info['update'][$baseName][$multipleName])) {
+						$multipleCount = count($info['update'][$baseName][$multipleName]);
+					}
+				}
+
+			}
+		}
+
+		//権限チェック(item単位)
+		//ログイン情報が渡された場合
+		if (!_IsNull($loginInfo)) {
+			//WOOROM権限以外の場合
+			if ($loginInfo['usr_auth_id'] != AUTH_WOOROM) {
+				//WOOROM権限のみ表示可の項目の場合
+				if (isset($item['auth']) && $item['auth'] == AUTH_WOOROM) {
+					//非表示にし、hiddenで表示する。
+					foreach ($item['input'] as $i => $value) {
+						$buf = array();
+//						$buf['update'][$baseName][$value['name']] = $info['update'][$baseName][$value['name']];
+
+						if ($tableMultipleFlag) {
+							if ($multipleFlag) {
+								$buf['update'][$baseName][$tIdx][$multipleName] = $info['update'][$baseName][$tIdx][$multipleName];
+							} else {
+								$buf['update'][$baseName][$tIdx][$value['name']] = $info['update'][$baseName][$tIdx][$value['name']];
+							}
+						} else {
+							if ($multipleFlag) {
+								$buf['update'][$baseName][$multipleName] = $info['update'][$baseName][$multipleName];
+							} else {
+								$buf['update'][$baseName][$value['name']] = $info['update'][$baseName][$value['name']];
+							}
+						}
+
+						$hidden4auth .= _CreateHidden($buf);
+					}
+					continue;
+				}
+			}
+		}
+
+		//項目のタイプは？(item単位)
+		if (!$allShowFlag) {
+			if (isset($item['type'])) {
+				switch ($item['type']) {
+					case 'hidden':
+						//非表示にし、hiddenで表示する。
+						foreach ($item['input'] as $i => $value) {
+							$buf = array();
+//							$buf['update'][$baseName][$value['name']] = $info['update'][$baseName][$value['name']];
+
+							if ($tableMultipleFlag) {
+								if ($multipleFlag) {
+									$buf['update'][$baseName][$tIdx][$multipleName] = $info['update'][$baseName][$tIdx][$multipleName];
+								} else {
+									$buf['update'][$baseName][$tIdx][$value['name']] = $info['update'][$baseName][$tIdx][$value['name']];
+								}
+							} else {
+								if ($multipleFlag) {
+									$buf['update'][$baseName][$multipleName] = $info['update'][$baseName][$multipleName];
+								} else {
+									$buf['update'][$baseName][$value['name']] = $info['update'][$baseName][$value['name']];
+								}
+							}
+
+							$hidden4auth .= _CreateHidden($buf);
+						}
+						continue 2;
+						break;
+				}
+			}
+		}
+
+		//必須項目か？
+		$label = "";
+		if ($item['required']) {
+			switch (gettype($item['label'])) {
+				case 'array':
+					foreach ($item['label'] as $i => $value) {
+						if ($i == 0) {
+							$label .= "".$value."&nbsp;※";
+						} else {
+							if (!_IsNull($label)) $label .= "<br />";
+							$label .= $value;
+						}
+					}
+					break;
+				default:
+					$label .= "".$item['label']."&nbsp;※";
+					break;
+			}
+		} else {
+			switch (gettype($item['label'])) {
+				case 'array':
+					foreach ($item['label'] as $i => $value) {
+						if (!_IsNull($label)) $label .= "<br />";
+						$label .= $value;
+					}
+					break;
+				default:
+					$label .= "".$item['label']."";
+					break;
+			}
+		}
+
+		//<tr>に指定するidがあるか？
+		$trId = null;
+		if (isset($item['item_id']) && !_IsNull($item['item_id'])) {
+			$trId = "id=\"".$item['item_id']."\"";
+		}
+
+		//<tr>に指定するclassがあるか？
+		$trClass = null;
+		if (isset($item['item_class']) && !_IsNull($item['item_class'])) {
+			$trClass = "class=\"".$item['item_class']."\"";
+		}
+
+		//<tr>に指定する属性があるか？
+		$trOption = null;
+		if (isset($item['item_option']) && !_IsNull($item['item_option'])) {
+			$trOption = $item['item_option'];
+		}
+
+		//項目のタイプは？(input単位)
+		$input = "";
+		for ($mIdx = 0; $mIdx < $multipleCount; $mIdx++) {
+
+			foreach ($item['input'] as $i => $value) {
+
+				//権限チェック(input単位)
+				//ログイン情報が渡された場合
+				if (!_IsNull($loginInfo)) {
+					//WOOROM権限以外の場合
+					if ($loginInfo['usr_auth_id'] != AUTH_WOOROM) {
+						//WOOROM権限のみ表示可の項目の場合
+						if (isset($value['auth']) && $value['auth'] == AUTH_WOOROM) {
+							if (isset($value['auth_type']) && !_IsNull($value['auth_type'])) {
+								//別の表示方法で表示する。例えば、入力項目ではなく表示のみ。
+								$value['type'] = $value['auth_type'];
+							} else {
+								//非表示にし、hiddenで表示する。
+								$buf = array();
+
+								if ($tableMultipleFlag) {
+									if ($multipleFlag) {
+										$buf['update'][$baseName][$tIdx][$multipleName][$mIdx][$value['name']] = $info['update'][$baseName][$tIdx][$multipleName][$mIdx][$value['name']];
+									} else {
+										$buf['update'][$baseName][$tIdx][$value['name']] = $info['update'][$baseName][$tIdx][$value['name']];
+									}
+								} else {
+									if ($multipleFlag) {
+										$buf['update'][$baseName][$multipleName][$mIdx][$value['name']] = $info['update'][$baseName][$multipleName][$mIdx][$value['name']];
+									} else {
+										$buf['update'][$baseName][$value['name']] = $info['update'][$baseName][$value['name']];
+									}
+								}
+								$hidden4auth .= _CreateHidden($buf);
+
+								continue;
+							}
+
+
+						}
+					}
+				}
+
+
+
+				if (!_IsNull($value['prefix_msg'])) {
+					if (!_IsNull($input)) $input .= "\n";
+					$input .= $value['prefix_msg'];
+				}
+				if (!_IsNull($value['prefix_html'])) {
+					if (!_IsNull($input)) $input .= "\n";
+					$input .= $value['prefix_html'];
+				}
+				if (!_IsNull($value['prefix'])) {
+					if (!_IsNull($input)) $input .= "\n";
+					$input .= $value['prefix'];
+				}
+
+				if ($tableMultipleFlag) {
+					if ($multipleFlag) {
+						//nameを設定する。
+						$attributeName = "update[".$baseName."][".$tIdx."][".$multipleName."][".$mIdx."][".$value['name']."]";
+						//valueを設定する。
+						$attributeValue = $info['update'][$baseName][$tIdx][$multipleName][$mIdx][$value['name']];
+					} else {
+						//nameを設定する。
+						$attributeName = "update[".$baseName."][".$tIdx."][".$value['name']."]";
+						//valueを設定する。
+						$attributeValue = $info['update'][$baseName][$tIdx][$value['name']];
+					}
+				} else {
+					if ($multipleFlag) {
+						//nameを設定する。
+						$attributeName = "update[".$baseName."][".$multipleName."][".$mIdx."][".$value['name']."]";
+						//valueを設定する。
+						$attributeValue = $info['update'][$baseName][$multipleName][$mIdx][$value['name']];
+					} else {
+						//nameを設定する。
+						$attributeName = "update[".$baseName."][".$value['name']."]";
+						//valueを設定する。
+						$attributeValue = $info['update'][$baseName][$value['name']];
+					}
+				}
+
+
+				if (!_IsNull($input)) $input .= "\n";
+				switch ($value['type']) {
+					case 'text':
+						//maxlengthを設定する。
+						$maxlength = null;
+						//テーブルが存在する場合、フィールドのサイズを設定する。
+						if (!_IsNull($colInfo)) {
+							if (isset($colInfo[$value['name']]['Size']) && !_IsNull($colInfo[$value['name']]['Size'])) {
+								$maxlength = $colInfo[$value['name']]['Size'];
+							}
+						}
+						//XMLに設定済みの場合、XMLの設定値を設定する。
+						if (isset($value['maxlength']) && !_IsNull($value['maxlength'])) $maxlength = $value['maxlength'];
+
+						$input .= "<input type=\"text\" name=\"".$attributeName."\" size=\"".$value['size']."\" maxlength=\"".$maxlength."\" tabindex=\"".(++$tabindex)."\" value=\"".$attributeValue."\" />";
+						break;
+					case 'password':
+						//maxlengthを設定する。
+						$maxlength = null;
+						//テーブルが存在する場合、フィールドのサイズを設定する。
+						if (!_IsNull($colInfo)) {
+							if (isset($colInfo[$value['name']]['Size']) && !_IsNull($colInfo[$value['name']]['Size'])) {
+								$maxlength = $colInfo[$value['name']]['Size'];
+							}
+						}
+						//XMLに設定済みの場合、XMLの設定値を設定する。
+						if (isset($value['maxlength']) && !_IsNull($value['maxlength'])) $maxlength = $value['maxlength'];
+
+						$input .= "<input type=\"password\" name=\"".$attributeName."\" size=\"".$value['size']."\" maxlength=\"".$maxlength."\" tabindex=\"".(++$tabindex)."\" value=\"".$attributeValue."\" />";
+						break;
+					case 'textarea':
+						$rows = 4;
+						if (isset($value['rows']) && !_IsNull($value['rows'])) $rows = $value['rows'];
+						$cols = 45;
+						if (isset($value['cols']) && !_IsNull($value['cols'])) $cols = $value['cols'];
+						$option = null;
+						if (isset($value['option']) && !_IsNull($value['option'])) $option = " ".$value['option'];
+						$input .= "<textarea name=\"".$attributeName."\" rows=\"".$rows."\" cols=\"".$cols."\" tabindex=\"".(++$tabindex)."\"".$option.">".$attributeValue."</textarea>";
+						break;
+					case 'select':
+						$value['parameter']['name'] = $attributeName;
+						$value['parameter']['default'] = $attributeValue;
+						$value['parameter']['tabindex'] = (++$tabindex);
+						$input .= _GetSelect4Array($value['parameter']);
+						break;
+					case 'radio':
+						$value['parameter']['name'] = $attributeName;
+						$value['parameter']['default'] = $attributeValue;
+						$value['parameter']['tabindex'] = (++$tabindex);
+						$input .= _GetRadio4Array($value['parameter'], $tabindex);
+						break;
+					case 'checkbox':
+						$value['parameter']['name'] = $attributeName;
+						$value['parameter']['default'] = $attributeValue;
+						$value['parameter']['tabindex'] = (++$tabindex);
+						$input .= _GetCheckbox4Array($value['parameter'], $tabindex);
+						break;
+					case 'label':
+						$input .= $attributeValue;
+						$input .= "<input type=\"hidden\" name=\"".$attributeName."\" value=\"".$attributeValue."\" />";
+						break;
+					case 'label_from_list':
+						$buf = null;
+						if (isset($value['parameter']['nameId']) && !_IsNull($value['parameter']['nameId'])) {
+							$buf .= _GetValueFromList($value['parameter']['list'], $attributeValue, $value['parameter']['nameId']);
+						} else {
+							$buf .= _GetValueFromList($value['parameter']['list'], $attributeValue);
+						}
+						$input .= $buf;
+						$input .= "<input type=\"hidden\" name=\"".$attributeName."\" value=\"".$attributeValue."\" />";
+						break;
+					case 'hidden':
+						if (!$allShowFlag) $input .= $attributeValue;
+						$input .= "<input type=\"hidden\" name=\"".$attributeName."\" value=\"".$attributeValue."\" />";
+						break;
+					case 'submit':
+						$input .= "<input class=\"submit\" type=\"submit\" name=\"".$attributeName."\" value=\"".$value['value']."\" tabindex=\"".(++$tabindex)."\" />";
+						break;
+					case 'flag':
+						$checked = null;
+						if ($attributeValue == '1') $checked = "checked=\"checked\"";
+						$input .= "<input type=\"checkbox\" name=\"".$attributeName."\" tabindex=\"".(++$tabindex)."\" value=\"1\" ".$checked." />";
+						break;
+					case 'file_item':
+						$buf = null;
+//						$buf .= _GetItemImage($info, $attributeValue);
+						$buf .= _GetImage($info, $attributeValue, FILE_DIR_ITEM_IMG, FILE_URL_ITEM_IMG, FILE_DIR_ITEM_IMG_TMP, FILE_URL_ITEM_IMG_TMP, FILE_DIR_NAME_FORMAT);
+						if (!_IsNull($buf)) {
+							$input .= $buf;
+							$input .= "\n";
+							$input .= "<br />";
+							$input .= "\n";
+						}
+
+						$input .= "<input type=\"file\" name=\"file_".$attributeName."\" size=\"".$value['size']."\" tabindex=\"".(++$tabindex)."\" />";
+						$input .= "\n";
+						$input .= "<input type=\"hidden\" name=\"".$attributeName."\" value=\"".$attributeValue."\" />";
+						break;
+
+					case 'file_bottle':
+						$buf = null;
+						$buf .= _GetImage($info, $attributeValue, FILE_DIR_BOTTLE_IMG, FILE_URL_BOTTLE_IMG, FILE_DIR_BOTTLE_IMG_TMP, FILE_URL_BOTTLE_IMG_TMP);
+						if (!_IsNull($buf)) {
+							$input .= $buf;
+							$input .= "\n";
+							$input .= "<br />";
+							$input .= "\n";
+						}
+
+						$input .= "<input type=\"file\" name=\"file_".$attributeName."\" size=\"".$value['size']."\" tabindex=\"".(++$tabindex)."\" />";
+						$input .= "\n";
+						$input .= "<input type=\"hidden\" name=\"".$attributeName."\" value=\"".$attributeValue."\" />";
+						break;
+
+					case 'file_design':
+						$buf = null;
+						$buf .= _GetImage($info, $attributeValue, FILE_DIR_DESIGN_IMG, FILE_URL_DESIGN_IMG, FILE_DIR_DESIGN_IMG_TMP, FILE_URL_DESIGN_IMG_TMP);
+						if (!_IsNull($buf)) {
+							$input .= $buf;
+							$input .= "\n";
+							$input .= "<br />";
+							$input .= "\n";
+						}
+
+						$input .= "<input type=\"file\" name=\"file_".$attributeName."\" size=\"".$value['size']."\" tabindex=\"".(++$tabindex)."\" />";
+						$input .= "\n";
+						$input .= "<input type=\"hidden\" name=\"".$attributeName."\" value=\"".$attributeValue."\" />";
+						break;
+
+					case 'file_character_j':
+						$buf = null;
+						$buf .= _GetImage($info, $attributeValue, FILE_DIR_CHARACTER_J_IMG, FILE_URL_CHARACTER_J_IMG, FILE_DIR_CHARACTER_J_IMG_TMP, FILE_URL_CHARACTER_J_IMG_TMP, null, FILE_CHARACTER_J_IMG_PX_SIZE_4_ADMIN);
+						if (!_IsNull($buf)) {
+							$input .= $buf;
+							$input .= "\n";
+							$input .= "<br />";
+							$input .= "\n";
+						}
+
+						$input .= "<input type=\"file\" name=\"file_".$attributeName."\" size=\"".$value['size']."\" tabindex=\"".(++$tabindex)."\" />";
+						$input .= "\n";
+						$input .= "<input type=\"hidden\" name=\"".$attributeName."\" value=\"".$attributeValue."\" />";
+						break;
+
+					case 'file_character_e':
+						$buf = null;
+						$buf .= _GetImage($info, $attributeValue, FILE_DIR_CHARACTER_E_IMG, FILE_URL_CHARACTER_E_IMG, FILE_DIR_CHARACTER_E_IMG_TMP, FILE_URL_CHARACTER_E_IMG_TMP, null, FILE_CHARACTER_E_IMG_PX_SIZE_4_ADMIN);
+						if (!_IsNull($buf)) {
+							$input .= $buf;
+							$input .= "\n";
+							$input .= "<br />";
+							$input .= "\n";
+						}
+
+						$input .= "<input type=\"file\" name=\"file_".$attributeName."\" size=\"".$value['size']."\" tabindex=\"".(++$tabindex)."\" />";
+						$input .= "\n";
+						$input .= "<input type=\"hidden\" name=\"".$attributeName."\" value=\"".$attributeValue."\" />";
+						break;
+
+
+					//交通事故サイト用 ------------------------------------------------ start
+					case 'label_status_history':
+						$buf = _GetInquiryStatusHistory($info);
+						$input .= $buf;
+						break;
+	//				case 'label_aftereffects_grade_decision_history':
+	//					$buf = _GetInquiryAftereffectsGradeDecisionHistory($info);
+	//					$input .= $buf;
+	//					break;
+					//交通事故サイト用 ------------------------------------------------ end
+
+
+					case 'xxx':
+						break;
+				}
+				if (!_IsNull($value['suffix'])) {
+					if (!_IsNull($input)) $input .= "\n";
+					$input .= $value['suffix'];
+				}
+				if (!_IsNull($value['suffix_html'])) {
+					if (!_IsNull($input)) $input .= "\n";
+					$input .= $value['suffix_html'];
+				}
+				if (!_IsNull($value['suffix_msg'])) {
+					if (!_IsNull($input)) $input .= "\n";
+					$input .= $value['suffix_msg'];
+				}
+			}
+		}
+
+
+		$colInfo = $bufColInfo;
+
+		if (isset($item['prefix']) && !_IsNull($item['prefix'])) {
+			$input = $item['prefix']."\n".$input;
+		}
+		if (isset($item['prefix_html']) && !_IsNull($item['prefix_html'])) {
+			$input = $item['prefix_html']."\n".$input;
+		}
+		if (isset($item['prefix_msg']) && !_IsNull($item['prefix_msg'])) {
+			$input = $item['prefix_msg']."\n".$input;
+		}
+
+
+		if (isset($item['suffix']) && !_IsNull($item['suffix'])) {
+			if (!_IsNull($input)) $input .= "\n";
+			$input .= $item['suffix'];
+		}
+		if (isset($item['suffix_html']) && !_IsNull($item['suffix_html'])) {
+			if (!_IsNull($input)) $input .= "\n";
+			$input .= $item['suffix_html'];
+		}
+		if (isset($item['suffix_msg']) && !_IsNull($item['suffix_msg'])) {
+			if (!_IsNull($input)) $input .= "\n";
+			$input .= $item['suffix_msg'];
+		}
+
+//		if (_IsNull($trId)) {
+//			$res .= "<tr>";
+//		} else {
+//			$res .= "<tr ".$trId.">";
+//		}
+
+		$res .= "<tr";
+		if (!_IsNull($trId)) {
+			$res .= " ";
+			$res .= $trId;
+		}
+		if (!_IsNull($trClass)) {
+			$res .= " ";
+			$res .= $trClass;
+		}
+		if (!_IsNull($trOption)) {
+			$res .= " ";
+			$res .= $trOption;
+		}
+		$res .= ">";
+
+		$res .= "\n";
+		$res .= "<td class=\"colHead\">";
+		$res .= "\n";
+		$res .= $label;
+		$res .= "\n";
+		$res .= "</td>";
+		$res .= "\n";
+		$res .= "<td>";
+		$res .= "\n";
+		$res .= $input;
+		$res .= "\n";
+		$res .= "</td>";
+		$res .= "\n";
+		$res .= "</tr>";
+		$res .= "\n";
+	}
+
+	$res .= "</tbody>";
+	$res .= "\n";
+	$res .= "</table>";
+	$res .= "\n";
+	$res .= $hidden4auth;
+
+	return $res;
+}
+
+/**
+ * 確認用に表示するテーブルを作成する。
+ *
+ * @param	array	$allList		XMLを読み込んだ配列
+ * @param	array	$info			入力した値が格納されている配列
+ * @param	int		&$tabindex		タブインデックス
+ * @param	array	$loginInfo		ログイン情報
+ * @param	boolean	$allShowFlag	全て表示するか？hidden項目も表示するか？{true:全て表示する。/false:XML設定、権限による表示有無に従う。}
+ * @return	なし
+ * @access  public
+ * @since
+ */
+function _CreateTableConfirmAll($allList, $info, &$tabindex, $loginInfo = null, $allShowFlag = false) {
+	$res = null;
+	foreach($allList as $key => $itemList) {
+
+		//交通事故サイト用(これは特別です。)------------------- start
+		//権限チェック
+		//ログイン情報が渡された場合
+		if (!_IsNull($loginInfo)) {
+			//WOOROM権限以外の場合
+			if ($loginInfo['usr_auth_id'] != AUTH_WOOROM) {
+				//WOOROM権限のみ表示可の項目の場合
+				if (isset($itemList['auth']) && $itemList['auth'] == AUTH_WOOROM) {
+					//非表示にする。
+					continue;
+				}
+			}
+		}
+		//交通事故サイト用(これは特別です。)------------------- end
+
+		$multipleFlag = false;
+		$multipleCount = 1;
+
+		if (is_array($itemList)) {
+			if (isset($itemList['sub_title']) && !_IsNull($itemList['sub_title'])) {
+				$res .= "<h3>";
+				$res .= $itemList['sub_title'];
+				$res .= "</h3>";
+				$res .= "\n";
+			}
+
+			//複数入力か？
+			if (isset($itemList['multiple']) && !_IsNull($itemList['multiple']) && _IsHalfSizeNumeric($itemList['multiple'])) {
+				$multipleFlag = true;
+				$multipleCount = $itemList['multiple'];
+
+				//複数項目がJavaScriptで追加される場合もある。
+				if (isset($info['update'][$key]) && is_array($info['update'][$key])) {
+//					if ($multipleCount < count($info['update'][$key])) {
+//						$multipleCount = count($info['update'][$key]);
+//					}
+					$multipleCount = count($info['update'][$key]);
+				}
+			}
+
+		}
+
+		$resBuf = null;
+		for ($tIdx = 0; $tIdx < $multipleCount; $tIdx++) {
+			$resBuf .= _CreateTableConfirm($itemList['item'], $info, $key, $loginInfo, $allShowFlag, $multipleFlag, $tIdx);
+		}
+
+		if (is_array($itemList)) {
+			if (isset($itemList['prefix']) && !_IsNull($itemList['prefix'])) {
+				$resBuf = $itemList['prefix']."\n".$resBuf;
+			}
+			if (isset($itemList['prefix_html']) && !_IsNull($itemList['prefix_html'])) {
+				$resBuf = $itemList['prefix_html']."\n".$resBuf;
+			}
+//			if (isset($itemList['prefix_msg']) && !_IsNull($itemList['prefix_msg'])) {
+//				$resBuf = $itemList['prefix_msg']."\n".$resBuf;
+//			}
+
+
+			if (isset($itemList['suffix']) && !_IsNull($itemList['suffix'])) {
+				if (!_IsNull($resBuf)) $resBuf .= "\n";
+				$resBuf .= $itemList['suffix'];
+			}
+			if (isset($itemList['suffix_html']) && !_IsNull($itemList['suffix_html'])) {
+				if (!_IsNull($resBuf)) $resBuf .= "\n";
+				$resBuf .= $itemList['suffix_html'];
+			}
+//			if (isset($itemList['suffix_msg']) && !_IsNull($itemList['suffix_msg'])) {
+//				if (!_IsNull($resBuf)) $resBuf .= "\n";
+//				$resBuf .= $itemList['suffix_msg'];
+//			}
+
+		}
+
+		$res .= $resBuf;
+
+
+	}
+
+
+	switch ($allList['xml_name']) {
+		case XML_NAME_CART:
+			//カート情報
+			$res .= "<div class=\"button\">";
+			$res .= "\n";
+			$res .= "<input class=\"submit\" type=\"submit\" name=\"back\" value=\"　入力画面に戻る　\" tabindex=\"".(++$tabindex)."\" />";
+			$res .= "\n";
+			$res .= "&nbsp;";
+			$res .= "<input class=\"submit\" type=\"submit\" name=\"go\" value=\"　送　信　\" tabindex=\"".(++$tabindex)."\" />";
+			$res .= "\n";
+			$res .= "</div>";
+			$res .= "\n";
+			break;
+
+		case XML_NAME_INQ:
+			//問合せ情報
+		case XML_NAME_LINK:
+			//相互リンク情報
+		case XML_NAME_INQ_MOBILE:
+			//問合せ情報(携帯用)
+			$res .= "<div class=\"button\">";
+			$res .= "\n";
+			$res .= "<input class=\"submit\" type=\"submit\" name=\"back\" value=\"　戻　る　\" tabindex=\"".(++$tabindex)."\" />";
+			$res .= "\n";
+			$res .= "&nbsp;";
+			$res .= "<input class=\"submit\" type=\"submit\" name=\"go\" value=\"　送　信　\" tabindex=\"".(++$tabindex)."\" />";
+			$res .= "\n";
+			$res .= "</div>";
+			$res .= "\n";
+			break;
+		case XML_NAME_CMP:
+		case XML_NAME_CMP_NAME:
+		case XML_NAME_CMP_CAPITAL:
+		case XML_NAME_CMP_ADDRESS:
+		case XML_NAME_CMP_PURPOSE:
+		case XML_NAME_CMP_BOARD_BASE:
+		case XML_NAME_CMP_BOARD_NAME:
+		case XML_NAME_CMP_PROMOTER:
+		case XML_NAME_CMP_PROMOTER_INVESTMENT:
+		case XML_NAME_CMP_ALL:
+			//株式会社設立情報
+			$res .= "<div class=\"button\">";
+			$res .= "\n";
+			$res .= "<input id=\"btn_back\" class=\"submit\" type=\"submit\" name=\"back\" value=\"　戻　る　\" tabindex=\"".(++$tabindex)."\" />";
+			$res .= "\n";
+			$res .= "&nbsp;";
+			$res .= "<input class=\"submit\" type=\"button\" value=\"印鑑の作成を依頼する\" tabindex=\"".(++$tabindex)."\" onclick=\"window.location.href='../../../seal/';\" />";
+			$res .= "\n";
+			$res .= "&nbsp;";
+			$res .= "<input class=\"submit\" type=\"button\" value=\"印鑑をご自身で用意する\" tabindex=\"".(++$tabindex)."\" onclick=\"window.location.href='../article/';\" />";
+			$res .= "\n";
+			$res .= "</div>";
+			$res .= "\n";
+			break;
+
+		case XML_NAME_LLC:
+		case XML_NAME_LLC_NAME:
+		case XML_NAME_LLC_CAPITAL:
+		case XML_NAME_LLC_ADDRESS:
+		case XML_NAME_LLC_ARTICLE:
+		case XML_NAME_LLC_PURPOSE:
+		case XML_NAME_LLC_BOARD_BASE:
+		case XML_NAME_LLC_BOARD_NAME:
+		case XML_NAME_LLC_PROMOTER:
+		case XML_NAME_LLC_PROMOTER_INVESTMENT:
+		case XML_NAME_LLC_ALL:
+			//合同会社設立情報
+			$res .= "<div class=\"button\">";
+			$res .= "\n";
+			$res .= "<input id=\"btn_back\" class=\"submit\" type=\"submit\" name=\"back\" value=\"　戻　る　\" tabindex=\"".(++$tabindex)."\" />";
+			$res .= "\n";
+			$res .= "&nbsp;";
+			$res .= "<input class=\"submit\" type=\"button\" value=\"印鑑の作成を依頼する\" tabindex=\"".(++$tabindex)."\" onclick=\"window.location.href='../../../seal/';\" />";
+			$res .= "\n";
+			$res .= "&nbsp;";
+			$res .= "<input class=\"submit\" type=\"button\" value=\"印鑑をご自身で用意する\" tabindex=\"".(++$tabindex)."\" onclick=\"window.location.href='./?article';\" />";
+			$res .= "\n";
+			$res .= "</div>";
+			$res .= "\n";
+			break;
+
+		case XML_NAME_SEAL:
+		case XML_NAME_SEAL_SET:
+		case XML_NAME_SEAL_IMPRINT:
+		case XML_NAME_SEAL_NAME:
+		case XML_NAME_SEAL_ALL:
+			//法人印注文情報
+		case XML_NAME_PAY:
+			//お支払い報告情報
+		case XML_NAME_BUY:
+			//ご利用料金のお支払い情報
+		case XML_NAME_ARTICLE:
+			//定款認証情報
+		case XML_NAME_ARTICLE_LLC:
+			//定款認証情報(合同会社用)
+			$res .= "<div class=\"button\">";
+			$res .= "\n";
+			$res .= "<input id=\"btn_back\" class=\"submit\" type=\"submit\" name=\"back\" value=\"　戻　る　\" tabindex=\"".(++$tabindex)."\" />";
+			$res .= "\n";
+			$res .= "&nbsp;";
+			$res .= "<input id=\"btn_go\" class=\"submit\" type=\"submit\" name=\"go\" value=\"　送　信　\" tabindex=\"".(++$tabindex)."\" />";
+			$res .= "\n";
+			$res .= "</div>";
+			$res .= "\n";
+			break;
+
+		case XML_NAME_USER:
+			//ユーザー情報
+			//ログイン情報が渡された場合→ログイン後の「ユーザーページ」が表示された。
+			//ログイン情報が渡されない場合→ログイン前の「ユーザー登録」が表示された。
+		case XML_NAME_USER_OEM:
+			//ユーザー情報(OEM・代理店制度用)
+			if (_IsNull($loginInfo) || !isset($loginInfo['usr_user_id'])) {
+				$res .= "<div class=\"button\">";
+				$res .= "\n";
+				$res .= "<input class=\"submit\" type=\"submit\" name=\"back\" value=\"　戻　る　\" tabindex=\"".(++$tabindex)."\" />";
+				$res .= "\n";
+				$res .= "&nbsp;";
+				$res .= "<input class=\"submit\" type=\"submit\" name=\"go\" value=\"　登　録　\" tabindex=\"".(++$tabindex)."\" />";
+				$res .= "\n";
+				$res .= "</div>";
+				$res .= "\n";
+			} else {
+				$res .= "<div class=\"button\">";
+				$res .= "\n";
+				$res .= "<input class=\"submit\" type=\"submit\" name=\"back\" value=\"　戻　る　\" tabindex=\"".(++$tabindex)."\" />";
+				$res .= "\n";
+				$res .= "&nbsp;";
+				$res .= "<input class=\"submit\" type=\"submit\" name=\"go\" value=\"　保　存　\" tabindex=\"".(++$tabindex)."\" />";
+				$res .= "\n";
+				$res .= "</div>";
+				$res .= "\n";
+			}
+			break;
+
+		case XML_NAME_CANCEL:
+			//登録解除
+			$res .= "<div class=\"button\">";
+			$res .= "\n";
+			$res .= "<input class=\"submit\" type=\"submit\" name=\"back\" value=\"　戻　る　\" tabindex=\"".(++$tabindex)."\" />";
+			$res .= "\n";
+			$res .= "&nbsp;";
+			$res .= "<input class=\"submit\" type=\"submit\" name=\"go\" value=\"　送　信　\" tabindex=\"".(++$tabindex)."\" />";
+			$res .= "\n";
+			$res .= "</div>";
+			$res .= "\n";
+			break;
+
+		case XML_NAME_ITEM:
+			//商品情報
+		default:
+			$res .= "<div class=\"button\">";
+			$res .= "\n";
+			$res .= "<input class=\"submit\" type=\"submit\" name=\"back\" value=\"　戻　る　\" tabindex=\"".(++$tabindex)."\" />";
+			$res .= "\n";
+			$res .= "&nbsp;";
+			$res .= "<input class=\"submit\" type=\"submit\" name=\"go\" value=\"　登　録　\" tabindex=\"".(++$tabindex)."\" />";
+			$res .= "\n";
+			$res .= "</div>";
+			$res .= "\n";
+			break;
+	}
+
+	unset($info['confirm']);
+	$res .= _CreateHidden($info);
+
+	return $res;
+}
+
+/**
+ * 確認用に表示するテーブルを作成する。
+ *
+ * @param	array	$itemList			XMLを読み込んだ配列
+ * @param	array	$info				入力した値が格納されている配列
+ * @param	string	$baseName			name属性の基本となる文字列(名称)
+ * @param	array	$loginInfo			ログイン情報
+ * @param	boolean	$allShowFlag		全て表示するか？hidden項目も表示するか？{true:全て表示する。/false:XML設定、権限による表示有無に従う。}
+ * @param	boolean	$tableMultipleFlag	テーブル単位で複数表示か？{true:複数表示する。/false:複数ではない。
+ * @param	int		$tIdx				テーブル単位で複数表示の場合のインデックス。
+ * @return	なし
+ * @access  public
+ * @since
+ */
+function _CreateTableConfirm($itemList, $info, $baseName, $loginInfo = null, $allShowFlag = false, $tableMultipleFlag = false, $tIdx = 0) {
+	if (_IsNull($itemList)) return null;
+	if (!is_array($itemList)) return null;
+
+	$res = null;
+
+	$res .= "<table class=\"independent\">";
+	$res .= "\n";
+	$res .= "<colgroup class=\"colgroupHead\"></colgroup>";
+	$res .= "\n";
+	$res .= "<colgroup class=\"colgroupBody\"></colgroup>";
+	$res .= "\n";
+	$res .= "<tbody>";
+	$res .= "\n";
+
+	foreach ($itemList as $key => $item) {
+
+		//権限チェック(item単位)
+		//ログイン情報が渡された場合
+		if (!_IsNull($loginInfo)) {
+			//WOOROM権限以外の場合
+			if ($loginInfo['usr_auth_id'] != AUTH_WOOROM) {
+				//WOOROM権限のみ表示可の項目の場合
+				if (isset($item['auth']) && $item['auth'] == AUTH_WOOROM) {
+					//非表示にする。
+					continue;
+				}
+			}
+		}
+
+		//項目のタイプは？(item単位)
+		if (!$allShowFlag) {
+			if (isset($item['type'])) {
+				switch ($item['type']) {
+					case 'hidden':
+						//非表示にし、hiddenで表示する。
+						continue 2;
+						break;
+				}
+			}
+		}
+
+		//show_confirm=0の場合、確認画面には非表示にする。
+		if (isset($item['show_confirm']) && !_IsNull($item['show_confirm'])) {
+			if (!$item['show_confirm']) {
+				continue;
+			}
+		}
+
+//		$label = "";
+//		switch (gettype($item['label'])) {
+//			case 'array':
+//				foreach ($item['label'] as $i => $value) {
+//					if (!_IsNull($label)) $label .= "<br />";
+//					$label .= $value;
+//				}
+//				break;
+//			default:
+//				$label .= "".$item['label']."";
+//				break;
+//		}
+
+		//必須項目か？
+		$label = "";
+		if ($item['required']) {
+			switch (gettype($item['label'])) {
+				case 'array':
+					foreach ($item['label'] as $i => $value) {
+						if ($i == 0) {
+							$label .= "".$value."&nbsp;※";
+						} else {
+							if (!_IsNull($label)) $label .= "<br />";
+							$label .= $value;
+						}
+					}
+					break;
+				default:
+					$label .= "".$item['label']."&nbsp;※";
+					break;
+			}
+		} else {
+			switch (gettype($item['label'])) {
+				case 'array':
+					foreach ($item['label'] as $i => $value) {
+						if (!_IsNull($label)) $label .= "<br />";
+						$label .= $value;
+					}
+					break;
+				default:
+					$label .= "".$item['label']."";
+					break;
+			}
+		}
+
+		//複数入力か？
+		$multipleFlag = false;
+		$multipleCount = 1;
+		$multipleName = 'dummy_name';
+		if (isset($item['multiple']) && !_IsNull($item['multiple']) && _IsHalfSizeNumeric($item['multiple'])) {
+			$multipleFlag = true;
+			$multipleCount = $item['multiple'];
+
+			if (isset($item['multiple_name']) && !_IsNull($item['multiple_name'])) {
+				$multipleName = $item['multiple_name'];
+
+				//複数項目がJavaScriptで追加される場合もある。
+//				if (isset($info['update'][$baseName][$tIdx][$multipleName]) && is_array($info['update'][$baseName][$tIdx][$multipleName])) {
+//					$multipleCount = count($info['update'][$baseName][$tIdx][$multipleName]);
+//				}
+
+				if ($tableMultipleFlag) {
+					if (isset($info['update'][$baseName][$tIdx][$multipleName]) && is_array($info['update'][$baseName][$tIdx][$multipleName])) {
+						$multipleCount = count($info['update'][$baseName][$tIdx][$multipleName]);
+					}
+				} else {
+					if (isset($info['update'][$baseName][$multipleName]) && is_array($info['update'][$baseName][$multipleName])) {
+						$multipleCount = count($info['update'][$baseName][$multipleName]);
+					}
+				}
+			}
+		}
+
+		//<tr>に指定するidがあるか？
+		$trId = null;
+		if (isset($item['item_id']) && !_IsNull($item['item_id'])) {
+			$trId = "id=\"".$item['item_id']."\"";
+		}
+
+		//<tr>に指定するclassがあるか？
+		$trClass = null;
+		if (isset($item['item_class']) && !_IsNull($item['item_class'])) {
+			$trClass = "class=\"".$item['item_class']."\"";
+		}
+
+		//<tr>に指定する属性があるか？
+		$trOption = null;
+		if (isset($item['item_option']) && !_IsNull($item['item_option'])) {
+			$trOption = $item['item_option'];
+		}
+
+		//項目のタイプは？
+		$input = "";
+		for ($mIdx = 0; $mIdx < $multipleCount; $mIdx++) {
+
+			foreach ($item['input'] as $i => $value) {
+
+				//権限チェック(input単位)
+				//ログイン情報が渡された場合
+				if (!_IsNull($loginInfo)) {
+					//WOOROM権限以外の場合
+					if ($loginInfo['usr_auth_id'] != AUTH_WOOROM) {
+						//WOOROM権限のみ表示可の項目の場合
+						if (isset($value['auth']) && $value['auth'] == AUTH_WOOROM) {
+							if (isset($value['auth_type']) && !_IsNull($value['auth_type'])) {
+								//別の表示方法で表示する。例えば、入力項目ではなく表示のみ。
+								$value['type'] = $value['auth_type'];
+							} else {
+								//非表示にする。
+								continue;
+							}
+						}
+					}
+				}
+
+				if (!_IsNull($value['prefix_html'])) {
+					if (!_IsNull($input)) $input .= "\n";
+					$input .= $value['prefix_html'];
+				}
+				if (!_IsNull($value['prefix'])) {
+					if (!_IsNull($input)) $input .= "\n";
+					$input .= $value['prefix'];
+				}
+
+//				//valueを設定する。
+//				$attributeValue = $info['update'][$baseName][$value['name']];
+
+				if ($tableMultipleFlag) {
+					if ($multipleFlag) {
+						//nameを設定する。
+						$attributeName = "update[".$baseName."][".$tIdx."][".$multipleName."][".$mIdx."][".$value['name']."]";
+						//valueを設定する。
+						$attributeValue = $info['update'][$baseName][$tIdx][$multipleName][$mIdx][$value['name']];
+					} else {
+						//nameを設定する。
+						$attributeName = "update[".$baseName."][".$tIdx."][".$value['name']."]";
+						//valueを設定する。
+						$attributeValue = $info['update'][$baseName][$tIdx][$value['name']];
+					}
+				} else {
+					if ($multipleFlag) {
+						//nameを設定する。
+						$attributeName = "update[".$baseName."][".$multipleName."][".$mIdx."][".$value['name']."]";
+						//valueを設定する。
+						$attributeValue = $info['update'][$baseName][$multipleName][$mIdx][$value['name']];
+					} else {
+						//nameを設定する。
+						$attributeName = "update[".$baseName."][".$value['name']."]";
+						//valueを設定する。
+						$attributeValue = $info['update'][$baseName][$value['name']];
+					}
+				}
+
+
+
+				if (!_IsNull($input)) $input .= "\n";
+				switch ($value['type']) {
+					case 'text':
+						$input .= $attributeValue;
+						break;
+					case 'password':
+						$input .= "&lt;&lt;非表示&gt;&gt;";
+						break;
+					case 'textarea':
+						$input .= nl2br($attributeValue);
+						break;
+					case 'select':
+						if (isset($value['parameter']['nameId']) && !_IsNull($value['parameter']['nameId'])) {
+							$input .= _GetValueFromList($value['parameter']['list'], $attributeValue, $value['parameter']['nameId']);
+						} else {
+							$input .= _GetValueFromList($value['parameter']['list'], $attributeValue);
+						}
+						break;
+					case 'radio':
+						if (isset($value['parameter']['nameId4confirm']) && !_IsNull($value['parameter']['nameId4confirm'])) {
+							$input .= _GetValueFromList($value['parameter']['list'], $attributeValue, $value['parameter']['nameId4confirm']);
+						} elseif (isset($value['parameter']['nameId']) && !_IsNull($value['parameter']['nameId'])) {
+							$input .= _GetValueFromList($value['parameter']['list'], $attributeValue, $value['parameter']['nameId']);
+						} else {
+							$input .= _GetValueFromList($value['parameter']['list'], $attributeValue);
+						}
+						break;
+					case 'checkbox':
+						$buf = "";
+						$count = 0;
+						if (isset($attributeValue)) {
+							foreach ($attributeValue as $no => $id) {
+								if (isset($value['parameter']['brPoint4confirm'])) {
+
+									if ($count >= $value['parameter']['brPoint4confirm']) {
+										if (!_IsNull($buf)) $buf .= "<br />";
+										$count = 0;
+									} else {
+										if (!_IsNull($buf)) $buf .= "&nbsp;";
+									}
+								} else {
+									if (!_IsNull($buf)) $buf .= "<br />";
+								}
+								if (isset($value['parameter']['nameId4confirm']) && !_IsNull($value['parameter']['nameId4confirm'])) {
+									$buf .= _GetValueFromList($value['parameter']['list'], $id, $value['parameter']['nameId4confirm']);
+								} else {
+									$buf .= _GetValueFromList($value['parameter']['list'], $id);
+								}
+								$count++;
+							}
+						}
+						$input .= $buf;
+						break;
+					case 'label':
+						$input .= $attributeValue;
+						break;
+					case 'label_from_list':
+						$buf = null;
+						if (isset($value['parameter']['nameId']) && !_IsNull($value['parameter']['nameId'])) {
+							$buf .= _GetValueFromList($value['parameter']['list'], $attributeValue, $value['parameter']['nameId']);
+						} else {
+							$buf .= _GetValueFromList($value['parameter']['list'], $attributeValue);
+						}
+						$input .= $buf;
+						break;
+					case 'hidden':
+						if (!$allShowFlag) $input .= $attributeValue;
+						break;
+					case 'flag':
+						$checked = "-";
+						if ($attributeValue == '1') $checked = "○";
+						$input .= $checked;
+						break;
+					case 'file_item':
+						$buf = null;
+//						$buf .= _GetItemImage($info, $attributeValue);
+						$buf .= _GetImage($info, $attributeValue, FILE_DIR_ITEM_IMG, FILE_URL_ITEM_IMG, FILE_DIR_ITEM_IMG_TMP, FILE_URL_ITEM_IMG_TMP, FILE_DIR_NAME_FORMAT);
+						$input .= $buf;
+						break;
+					case 'file_bottle':
+						$buf = null;
+						$buf .= _GetImage($info, $attributeValue, FILE_DIR_BOTTLE_IMG, FILE_URL_BOTTLE_IMG, FILE_DIR_BOTTLE_IMG_TMP, FILE_URL_BOTTLE_IMG_TMP);
+						$input .= $buf;
+						break;
+					case 'file_design':
+						$buf = null;
+						$buf .= _GetImage($info, $attributeValue, FILE_DIR_DESIGN_IMG, FILE_URL_DESIGN_IMG, FILE_DIR_DESIGN_IMG_TMP, FILE_URL_DESIGN_IMG_TMP);
+						$input .= $buf;
+						break;
+					case 'file_character_j':
+						$buf = null;
+						$buf .= _GetImage($info, $attributeValue, FILE_DIR_CHARACTER_J_IMG, FILE_URL_CHARACTER_J_IMG, FILE_DIR_CHARACTER_J_IMG_TMP, FILE_URL_CHARACTER_J_IMG_TMP, null, FILE_CHARACTER_J_IMG_PX_SIZE_4_ADMIN);
+						$input .= $buf;
+						break;
+					case 'file_character_e':
+						$buf = null;
+						$buf .= _GetImage($info, $attributeValue, FILE_DIR_CHARACTER_E_IMG, FILE_URL_CHARACTER_E_IMG, FILE_DIR_CHARACTER_E_IMG_TMP, FILE_URL_CHARACTER_E_IMG_TMP, null, FILE_CHARACTER_E_IMG_PX_SIZE_4_ADMIN);
+						$input .= $buf;
+						break;
+
+					//交通事故サイト用 ------------------------------------------------ start
+					case 'label_status_history':
+						$buf = _GetInquiryStatusHistory($info);
+						$input .= $buf;
+						break;
+	//				case 'label_aftereffects_grade_decision_history':
+	//					$buf = _GetInquiryAftereffectsGradeDecisionHistory($info);
+	//					$input .= $buf;
+	//					break;
+					//交通事故サイト用 ------------------------------------------------ end
+
+					case 'xxx':
+						break;
+				}
+				if (!_IsNull($value['suffix'])) {
+					if (!_IsNull($input)) $input .= "\n";
+					$input .= $value['suffix'];
+				}
+				if (!_IsNull($value['suffix_html'])) {
+					if (!_IsNull($input)) $input .= "\n";
+					$input .= $value['suffix_html'];
+				}
+			}
+
+
+		}
+
+
+		if (isset($item['prefix']) && !_IsNull($item['prefix'])) {
+			$input = $item['prefix']."\n".$input;
+		}
+		if (isset($item['prefix_html']) && !_IsNull($item['prefix_html'])) {
+			$input = $item['prefix_html']."\n".$input;
+		}
+//		if (isset($item['prefix_msg']) && !_IsNull($item['prefix_msg'])) {
+//			$input = $item['prefix_msg']."\n".$input;
+//		}
+
+
+		if (isset($item['suffix']) && !_IsNull($item['suffix'])) {
+			if (!_IsNull($input)) $input .= "\n";
+			$input .= $item['suffix'];
+		}
+		if (isset($item['suffix_html']) && !_IsNull($item['suffix_html'])) {
+			if (!_IsNull($input)) $input .= "\n";
+			$input .= $item['suffix_html'];
+		}
+//		if (isset($item['suffix_msg']) && !_IsNull($item['suffix_msg'])) {
+//			if (!_IsNull($input)) $input .= "\n";
+//			$input .= $item['suffix_msg'];
+//		}
+
+
+//		$res .= "<tr>";
+
+		$res .= "<tr";
+		if (!_IsNull($trId)) {
+			$res .= " ";
+			$res .= $trId;
+		}
+		if (!_IsNull($trClass)) {
+			$res .= " ";
+			$res .= $trClass;
+		}
+		if (!_IsNull($trOption)) {
+			$res .= " ";
+			$res .= $trOption;
+		}
+		$res .= ">";
+		$res .= "\n";
+
+		$res .= "<td class=\"colHead\">";
+		$res .= "\n";
+		$res .= $label;
+		$res .= "\n";
+		$res .= "</td>";
+		$res .= "\n";
+		$res .= "<td>";
+		$res .= "\n";
+		$res .= $input;
+		$res .= "\n";
+		$res .= "</td>";
+		$res .= "\n";
+		$res .= "</tr>";
+		$res .= "\n";
+	}
+
+	$res .= "</tbody>";
+	$res .= "\n";
+	$res .= "</table>";
+
+	return $res;
+}
+
+
+
+
+/************************************/
+/**
+ * 確認用に表示するテーブルを作成する。
+ *
+ * @param	array	$allList		XMLを読み込んだ配列
+ * @param	array	$info			入力した値が格納されている配列
+ * @param	int		&$tabindex		タブインデックス
+ * @param	array	$loginInfo		ログイン情報
+ * @param	boolean	$allShowFlag	全て表示するか？hidden項目も表示するか？{true:全て表示する。/false:XML設定、権限による表示有無に従う。}
+ * @return	なし
+ * @access  public
+ * @since
+ */
+function _CreateTableConfirmSimpleAll($allList, $info, &$tabindex, $loginInfo = null, $allShowFlag = false) {
+	$baseUrl = URL;
+	$sslUrl = SSL_URL;
+
+	$res = null;
+	foreach($allList as $key => $itemList) {
+
+		//交通事故サイト用(これは特別です。)------------------- start
+		//権限チェック
+		//ログイン情報が渡された場合
+		if (!_IsNull($loginInfo)) {
+			//WOOROM権限以外の場合
+			if ($loginInfo['usr_auth_id'] != AUTH_WOOROM) {
+				//WOOROM権限のみ表示可の項目の場合
+				if (isset($itemList['auth']) && $itemList['auth'] == AUTH_WOOROM) {
+					//非表示にする。
+					continue;
+				}
+			}
+		}
+		//交通事故サイト用(これは特別です。)------------------- end
+
+		$multipleFlag = false;
+		$multipleCount = 1;
+
+		if (is_array($itemList)) {
+			if (isset($itemList['sub_title']) && !_IsNull($itemList['sub_title'])) {
+				$subTitle = $itemList['sub_title'];
+				if (isset($itemList['simple_url']) && !_IsNull($itemList['simple_url'])) {
+					$subTitle = null;
+					$subTitle .= "<a href=\"".$baseUrl.$itemList['simple_url']."\" title=\"".$itemList['sub_title']."\">";
+					$subTitle .= $itemList['sub_title'];
+					$subTitle .= "</a>";
+				}
+				$res .= "<h4>";
+				$res .= $subTitle;
+				$res .= "</h4>";
+				$res .= "\n";
+			}
+
+			//複数入力か？
+			if (isset($itemList['multiple']) && !_IsNull($itemList['multiple']) && _IsHalfSizeNumeric($itemList['multiple'])) {
+				$multipleFlag = true;
+				$multipleCount = $itemList['multiple'];
+
+				//複数項目がJavaScriptで追加される場合もある。
+				if (isset($info['update'][$key]) && is_array($info['update'][$key])) {
+//					if ($multipleCount < count($info['update'][$key])) {
+//						$multipleCount = count($info['update'][$key]);
+//					}
+					$multipleCount = count($info['update'][$key]);
+				}
+			}
+
+		}
+
+		$resBuf = null;
+		for ($tIdx = 0; $tIdx < $multipleCount; $tIdx++) {
+			$resBuf .= _CreateTableConfirmSimple($itemList['item'], $info, $key, $loginInfo, $allShowFlag, $multipleFlag, $tIdx);
+		}
+
+		if (is_array($itemList)) {
+			if (isset($itemList['prefix']) && !_IsNull($itemList['prefix'])) {
+				$resBuf = $itemList['prefix']."\n".$resBuf;
+			}
+			if (isset($itemList['prefix_html']) && !_IsNull($itemList['prefix_html'])) {
+				$resBuf = $itemList['prefix_html']."\n".$resBuf;
+			}
+//			if (isset($itemList['prefix_msg']) && !_IsNull($itemList['prefix_msg'])) {
+//				$resBuf = $itemList['prefix_msg']."\n".$resBuf;
+//			}
+
+
+			if (isset($itemList['suffix']) && !_IsNull($itemList['suffix'])) {
+				if (!_IsNull($resBuf)) $resBuf .= "\n";
+				$resBuf .= $itemList['suffix'];
+			}
+			if (isset($itemList['suffix_html']) && !_IsNull($itemList['suffix_html'])) {
+				if (!_IsNull($resBuf)) $resBuf .= "\n";
+				$resBuf .= $itemList['suffix_html'];
+			}
+//			if (isset($itemList['suffix_msg']) && !_IsNull($itemList['suffix_msg'])) {
+//				if (!_IsNull($resBuf)) $resBuf .= "\n";
+//				$resBuf .= $itemList['suffix_msg'];
+//			}
+
+		}
+
+		$res .= $resBuf;
+
+
+	}
+
+
+//	switch ($allList['xml_name']) {
+//		case XML_NAME_CART:
+//			//カート情報
+//			$res .= "<div class=\"button\">";
+//			$res .= "\n";
+//			$res .= "<input class=\"submit\" type=\"submit\" name=\"back\" value=\"　入力画面に戻る　\" tabindex=\"".(++$tabindex)."\" />";
+//			$res .= "\n";
+//			$res .= "&nbsp;";
+//			$res .= "<input class=\"submit\" type=\"submit\" name=\"go\" value=\"　送　信　\" tabindex=\"".(++$tabindex)."\" />";
+//			$res .= "\n";
+//			$res .= "</div>";
+//			$res .= "\n";
+//			break;
+//
+//		case XML_NAME_INQ:
+//			//問合せ情報
+//		case XML_NAME_LINK:
+//			//相互リンク情報
+//		case XML_NAME_INQ_MOBILE:
+//			//問合せ情報(携帯用)
+//			$res .= "<div class=\"button\">";
+//			$res .= "\n";
+//			$res .= "<input class=\"submit\" type=\"submit\" name=\"back\" value=\"　戻　る　\" tabindex=\"".(++$tabindex)."\" />";
+//			$res .= "\n";
+//			$res .= "&nbsp;";
+//			$res .= "<input class=\"submit\" type=\"submit\" name=\"go\" value=\"　送　信　\" tabindex=\"".(++$tabindex)."\" />";
+//			$res .= "\n";
+//			$res .= "</div>";
+//			$res .= "\n";
+//			break;
+//		case XML_NAME_CMP:
+//		case XML_NAME_CMP_NAME:
+//		case XML_NAME_CMP_CAPITAL:
+//		case XML_NAME_CMP_ADDRESS:
+//		case XML_NAME_CMP_PURPOSE:
+//		case XML_NAME_CMP_BOARD_BASE:
+//		case XML_NAME_CMP_BOARD_NAME:
+//		case XML_NAME_CMP_PROMOTER:
+//		case XML_NAME_CMP_PROMOTER_INVESTMENT:
+//		case XML_NAME_CMP_ALL:
+//			//株式会社設立情報
+//		case XML_NAME_LLC:
+//		case XML_NAME_LLC_NAME:
+//		case XML_NAME_LLC_CAPITAL:
+//		case XML_NAME_LLC_ADDRESS:
+//		case XML_NAME_LLC_ARTICLE:
+//		case XML_NAME_LLC_PURPOSE:
+//		case XML_NAME_LLC_BOARD_BASE:
+//		case XML_NAME_LLC_BOARD_NAME:
+//		case XML_NAME_LLC_PROMOTER:
+//		case XML_NAME_LLC_PROMOTER_INVESTMENT:
+//		case XML_NAME_LLC_ALL:
+//			//合同会社設立情報
+//			$res .= "<div class=\"button\">";
+//			$res .= "\n";
+//			$res .= "<input id=\"btn_back\" class=\"submit\" type=\"submit\" name=\"back\" value=\"　戻　る　\" tabindex=\"".(++$tabindex)."\" />";
+//			$res .= "\n";
+//			$res .= "</div>";
+//			$res .= "\n";
+//			break;
+//
+//		case XML_NAME_SEAL:
+//		case XML_NAME_SEAL_SET:
+//		case XML_NAME_SEAL_IMPRINT:
+//		case XML_NAME_SEAL_NAME:
+//		case XML_NAME_SEAL_ALL:
+//			//法人印注文情報
+//		case XML_NAME_PAY:
+//			//お支払い報告情報
+//		case XML_NAME_BUY:
+//			//ご利用料金のお支払い情報
+//		case XML_NAME_ARTICLE:
+//			//定款認証情報
+//			$res .= "<div class=\"button\">";
+//			$res .= "\n";
+//			$res .= "<input id=\"btn_back\" class=\"submit\" type=\"submit\" name=\"back\" value=\"　戻　る　\" tabindex=\"".(++$tabindex)."\" />";
+//			$res .= "\n";
+//			$res .= "&nbsp;";
+//			$res .= "<input id=\"btn_go\" class=\"submit\" type=\"submit\" name=\"go\" value=\"　送　信　\" tabindex=\"".(++$tabindex)."\" />";
+//			$res .= "\n";
+//			$res .= "</div>";
+//			$res .= "\n";
+//			break;
+//
+//		case XML_NAME_USER:
+//			//ユーザー情報
+//			//ログイン情報が渡された場合→ログイン後の「ユーザーページ」が表示された。
+//			//ログイン情報が渡されない場合→ログイン前の「ユーザー登録」が表示された。
+//			if (_IsNull($loginInfo) || !isset($loginInfo['usr_user_id'])) {
+//				$res .= "<div class=\"button\">";
+//				$res .= "\n";
+//				$res .= "<input class=\"submit\" type=\"submit\" name=\"back\" value=\"　戻　る　\" tabindex=\"".(++$tabindex)."\" />";
+//				$res .= "\n";
+//				$res .= "&nbsp;";
+//				$res .= "<input class=\"submit\" type=\"submit\" name=\"go\" value=\"　登　録　\" tabindex=\"".(++$tabindex)."\" />";
+//				$res .= "\n";
+//				$res .= "</div>";
+//				$res .= "\n";
+//			} else {
+//				$res .= "<div class=\"button\">";
+//				$res .= "\n";
+//				$res .= "<input class=\"submit\" type=\"submit\" name=\"back\" value=\"　戻　る　\" tabindex=\"".(++$tabindex)."\" />";
+//				$res .= "\n";
+//				$res .= "&nbsp;";
+//				$res .= "<input class=\"submit\" type=\"submit\" name=\"go\" value=\"　保　存　\" tabindex=\"".(++$tabindex)."\" />";
+//				$res .= "\n";
+//				$res .= "</div>";
+//				$res .= "\n";
+//			}
+//			break;
+//
+//		case XML_NAME_CANCEL:
+//			//登録解除
+//			$res .= "<div class=\"button\">";
+//			$res .= "\n";
+//			$res .= "<input class=\"submit\" type=\"submit\" name=\"back\" value=\"　戻　る　\" tabindex=\"".(++$tabindex)."\" />";
+//			$res .= "\n";
+//			$res .= "&nbsp;";
+//			$res .= "<input class=\"submit\" type=\"submit\" name=\"go\" value=\"　送　信　\" tabindex=\"".(++$tabindex)."\" />";
+//			$res .= "\n";
+//			$res .= "</div>";
+//			$res .= "\n";
+//			break;
+//
+//		case XML_NAME_ITEM:
+//			//商品情報
+//		default:
+//			$res .= "<div class=\"button\">";
+//			$res .= "\n";
+//			$res .= "<input class=\"submit\" type=\"submit\" name=\"back\" value=\"　戻　る　\" tabindex=\"".(++$tabindex)."\" />";
+//			$res .= "\n";
+//			$res .= "&nbsp;";
+//			$res .= "<input class=\"submit\" type=\"submit\" name=\"go\" value=\"　登　録　\" tabindex=\"".(++$tabindex)."\" />";
+//			$res .= "\n";
+//			$res .= "</div>";
+//			$res .= "\n";
+//			break;
+//	}
+//
+//	unset($info['confirm']);
+//	$res .= _CreateHidden($info);
+
+	return $res;
+}
+
+/**
+ * 確認用に表示するテーブルを作成する。
+ *
+ * @param	array	$itemList			XMLを読み込んだ配列
+ * @param	array	$info				入力した値が格納されている配列
+ * @param	string	$baseName			name属性の基本となる文字列(名称)
+ * @param	array	$loginInfo			ログイン情報
+ * @param	boolean	$allShowFlag		全て表示するか？hidden項目も表示するか？{true:全て表示する。/false:XML設定、権限による表示有無に従う。}
+ * @param	boolean	$tableMultipleFlag	テーブル単位で複数表示か？{true:複数表示する。/false:複数ではない。
+ * @param	int		$tIdx				テーブル単位で複数表示の場合のインデックス。
+ * @return	なし
+ * @access  public
+ * @since
+ */
+function _CreateTableConfirmSimple($itemList, $info, $baseName, $loginInfo = null, $allShowFlag = false, $tableMultipleFlag = false, $tIdx = 0) {
+	if (_IsNull($itemList)) return null;
+	if (!is_array($itemList)) return null;
+
+	$res = null;
+
+	$simple = null;
+	$simpleFlag = false;
+	$simpleMaxlength = null;
+
+
+	foreach ($itemList as $key => $item) {
+
+		//simple=1の場合、画面に表示にする。
+		if (!isset($item['simple'])) continue;
+		if (_IsNull($item['simple'])) continue;
+		if ($item['simple'] != '1') continue;
+
+		if (isset($item['simple_start']) && !_IsNull($item['simple_start'])) {
+			if ($item['simple_start']) {
+				$simpleFlag = true;
+				$simple = null;
+			}
+		}
+
+		if (isset($item['simple_maxlength']) && !_IsNull($item['simple_maxlength'])) {
+			$simpleMaxlength = $item['simple_maxlength'];
+		}
+
+
+		//権限チェック(item単位)
+		//ログイン情報が渡された場合
+		if (!_IsNull($loginInfo)) {
+			//WOOROM権限以外の場合
+			if ($loginInfo['usr_auth_id'] != AUTH_WOOROM) {
+				//WOOROM権限のみ表示可の項目の場合
+				if (isset($item['auth']) && $item['auth'] == AUTH_WOOROM) {
+					//非表示にする。
+					continue;
+				}
+			}
+		}
+
+		//項目のタイプは？(item単位)
+		if (!$allShowFlag) {
+			if (isset($item['type'])) {
+				switch ($item['type']) {
+					case 'hidden':
+						//非表示にし、hiddenで表示する。
+						continue 2;
+						break;
+				}
+			}
+		}
+
+		//show_confirm=0の場合、確認画面には非表示にする。
+		if (isset($item['show_confirm']) && !_IsNull($item['show_confirm'])) {
+			if (!$item['show_confirm']) {
+				continue;
+			}
+		}
+
+//		$label = "";
+//		switch (gettype($item['label'])) {
+//			case 'array':
+//				foreach ($item['label'] as $i => $value) {
+//					if (!_IsNull($label)) $label .= "<br />";
+//					$label .= $value;
+//				}
+//				break;
+//			default:
+//				$label .= "".$item['label']."";
+//				break;
+//		}
+
+		//必須項目か？
+		$label = "";
+		if ($item['required']) {
+			switch (gettype($item['label'])) {
+				case 'array':
+					foreach ($item['label'] as $i => $value) {
+						if ($i == 0) {
+							$label .= "".$value."&nbsp;※";
+						} else {
+							if (!_IsNull($label)) $label .= "<br />";
+							$label .= $value;
+						}
+					}
+					break;
+				default:
+//					$label .= "".$item['label']."&nbsp;※";
+					$label .= "".$item['label']."";
+					break;
+			}
+		} else {
+			switch (gettype($item['label'])) {
+				case 'array':
+					foreach ($item['label'] as $i => $value) {
+						if (!_IsNull($label)) $label .= "<br />";
+						$label .= $value;
+					}
+					break;
+				default:
+					$label .= "".$item['label']."";
+					break;
+			}
+		}
+
+		$label = "";
+		if (isset($item['simple_label']) && !_IsNull($item['simple_label'])) {
+			$label .= "".$item['simple_label']."";
+		}
+
+
+		//複数入力か？
+		$multipleFlag = false;
+		$multipleCount = 1;
+		$multipleName = 'dummy_name';
+		if (isset($item['multiple']) && !_IsNull($item['multiple']) && _IsHalfSizeNumeric($item['multiple'])) {
+			$multipleFlag = true;
+			$multipleCount = $item['multiple'];
+
+			if (isset($item['multiple_name']) && !_IsNull($item['multiple_name'])) {
+				$multipleName = $item['multiple_name'];
+
+				//複数項目がJavaScriptで追加される場合もある。
+//				if (isset($info['update'][$baseName][$tIdx][$multipleName]) && is_array($info['update'][$baseName][$tIdx][$multipleName])) {
+//					$multipleCount = count($info['update'][$baseName][$tIdx][$multipleName]);
+//				}
+
+				if ($tableMultipleFlag) {
+					if (isset($info['update'][$baseName][$tIdx][$multipleName]) && is_array($info['update'][$baseName][$tIdx][$multipleName])) {
+						$multipleCount = count($info['update'][$baseName][$tIdx][$multipleName]);
+					}
+				} else {
+					if (isset($info['update'][$baseName][$multipleName]) && is_array($info['update'][$baseName][$multipleName])) {
+						$multipleCount = count($info['update'][$baseName][$multipleName]);
+					}
+				}
+			}
+		}
+
+		//<tr>に指定するidがあるか？
+		$trId = null;
+		if (isset($item['item_id']) && !_IsNull($item['item_id'])) {
+			$trId = "id=\"".$item['item_id']."\"";
+		}
+
+		//<tr>に指定するclassがあるか？
+		$trClass = null;
+		if (isset($item['item_class']) && !_IsNull($item['item_class'])) {
+			$trClass = "class=\"".$item['item_class']."\"";
+		}
+
+		//<tr>に指定する属性があるか？
+		$trOption = null;
+		if (isset($item['item_option']) && !_IsNull($item['item_option'])) {
+			$trOption = $item['item_option'];
+		}
+
+		//項目のタイプは？
+		$input = "";
+		for ($mIdx = 0; $mIdx < $multipleCount; $mIdx++) {
+
+			foreach ($item['input'] as $i => $value) {
+				//simple_show=0の場合、確認画面には非表示にする。
+				if (isset($value['simple_show']) && !_IsNull($value['simple_show'])) {
+					if (!$value['simple_show']) {
+						continue;
+					}
+				}
+
+				$simpleMaxlengthInput = null;
+				if (isset($value['simple_maxlength']) && !_IsNull($value['simple_maxlength'])) {
+					$simpleMaxlengthInput = $value['simple_maxlength'];
+				}
+
+				//権限チェック(input単位)
+				//ログイン情報が渡された場合
+				if (!_IsNull($loginInfo)) {
+					//WOOROM権限以外の場合
+					if ($loginInfo['usr_auth_id'] != AUTH_WOOROM) {
+						//WOOROM権限のみ表示可の項目の場合
+						if (isset($value['auth']) && $value['auth'] == AUTH_WOOROM) {
+							if (isset($value['auth_type']) && !_IsNull($value['auth_type'])) {
+								//別の表示方法で表示する。例えば、入力項目ではなく表示のみ。
+								$value['type'] = $value['auth_type'];
+							} else {
+								//非表示にする。
+								continue;
+							}
+						}
+					}
+				}
+
+
+//				//valueを設定する。
+//				$attributeValue = $info['update'][$baseName][$value['name']];
+
+				if ($tableMultipleFlag) {
+					if ($multipleFlag) {
+						//nameを設定する。
+						$attributeName = "update[".$baseName."][".$tIdx."][".$multipleName."][".$mIdx."][".$value['name']."]";
+						//valueを設定する。
+						$attributeValue = $info['update'][$baseName][$tIdx][$multipleName][$mIdx][$value['name']];
+					} else {
+						//nameを設定する。
+						$attributeName = "update[".$baseName."][".$tIdx."][".$value['name']."]";
+						//valueを設定する。
+						$attributeValue = $info['update'][$baseName][$tIdx][$value['name']];
+					}
+				} else {
+					if ($multipleFlag) {
+						//nameを設定する。
+						$attributeName = "update[".$baseName."][".$multipleName."][".$mIdx."][".$value['name']."]";
+						//valueを設定する。
+						$attributeValue = $info['update'][$baseName][$multipleName][$mIdx][$value['name']];
+					} else {
+						//nameを設定する。
+						$attributeName = "update[".$baseName."][".$value['name']."]";
+						//valueを設定する。
+						$attributeValue = $info['update'][$baseName][$value['name']];
+					}
+				}
+
+				//未設定なら次へ。
+				if (_IsNull($attributeValue)) continue;
+
+
+				if (!_IsNull($simpleMaxlengthInput)) {
+					switch ($value['type']) {
+						case 'text':
+						case 'textarea':
+							$attributeValue = _SubStr($attributeValue, $simpleMaxlengthInput);
+							break;
+					}
+				}
+
+
+				if (!_IsNull($value['simple_prefix_html'])) {
+					$input .= $value['simple_prefix_html'];
+				} elseif (!_IsNull($value['prefix_html'])) {
+//					if (!_IsNull($input)) $input .= "\n";
+					$input .= $value['prefix_html'];
+				}
+				if (!_IsNull($value['prefix'])) {
+//					if (!_IsNull($input)) $input .= "\n";
+					$input .= $value['prefix'];
+				}
+
+//				if (!_IsNull($input)) $input .= "\n";
+				switch ($value['type']) {
+					case 'text':
+						$input .= $attributeValue;
+						break;
+					case 'password':
+						$input .= "&lt;&lt;非表示&gt;&gt;";
+						break;
+					case 'textarea':
+						$input .= nl2br($attributeValue);
+						break;
+					case 'select':
+						if (isset($value['parameter']['simple_nameId']) && !_IsNull($value['parameter']['simple_nameId'])) {
+							$input .= _GetValueFromList($value['parameter']['list'], $attributeValue, $value['parameter']['simple_nameId']);
+						} elseif (isset($value['parameter']['nameId']) && !_IsNull($value['parameter']['nameId'])) {
+							$input .= _GetValueFromList($value['parameter']['list'], $attributeValue, $value['parameter']['nameId']);
+						} else {
+							$input .= _GetValueFromList($value['parameter']['list'], $attributeValue);
+						}
+						break;
+					case 'radio':
+						if (isset($value['parameter']['nameId4confirm']) && !_IsNull($value['parameter']['nameId4confirm'])) {
+							$input .= _GetValueFromList($value['parameter']['list'], $attributeValue, $value['parameter']['nameId4confirm']);
+						} elseif (isset($value['parameter']['nameId']) && !_IsNull($value['parameter']['nameId'])) {
+							$input .= _GetValueFromList($value['parameter']['list'], $attributeValue, $value['parameter']['nameId']);
+						} else {
+							$input .= _GetValueFromList($value['parameter']['list'], $attributeValue);
+						}
+						break;
+					case 'checkbox':
+						$buf = "";
+						$count = 0;
+						if (isset($attributeValue)) {
+							foreach ($attributeValue as $no => $id) {
+								if (isset($value['parameter']['brPoint4confirm'])) {
+
+									if ($count >= $value['parameter']['brPoint4confirm']) {
+										if (!_IsNull($buf)) $buf .= "<br />";
+										$count = 0;
+									} else {
+										if (!_IsNull($buf)) $buf .= "&nbsp;";
+									}
+								} else {
+									if (!_IsNull($buf)) $buf .= "<br />";
+								}
+								if (isset($value['parameter']['nameId4confirm']) && !_IsNull($value['parameter']['nameId4confirm'])) {
+									$buf .= _GetValueFromList($value['parameter']['list'], $id, $value['parameter']['nameId4confirm']);
+								} else {
+									$buf .= _GetValueFromList($value['parameter']['list'], $id);
+								}
+								$count++;
+							}
+						}
+						$input .= $buf;
+						break;
+					case 'label':
+						$input .= $attributeValue;
+						break;
+					case 'label_from_list':
+						$buf = null;
+						if (isset($value['parameter']['nameId']) && !_IsNull($value['parameter']['nameId'])) {
+							$buf .= _GetValueFromList($value['parameter']['list'], $attributeValue, $value['parameter']['nameId']);
+						} else {
+							$buf .= _GetValueFromList($value['parameter']['list'], $attributeValue);
+						}
+						$input .= $buf;
+						break;
+					case 'hidden':
+						if (!$allShowFlag) $input .= $attributeValue;
+						break;
+					case 'flag':
+						$checked = "-";
+						if ($attributeValue == '1') $checked = "○";
+						$input .= $checked;
+						break;
+					case 'file_item':
+						$buf = null;
+//						$buf .= _GetItemImage($info, $attributeValue);
+						$buf .= _GetImage($info, $attributeValue, FILE_DIR_ITEM_IMG, FILE_URL_ITEM_IMG, FILE_DIR_ITEM_IMG_TMP, FILE_URL_ITEM_IMG_TMP, FILE_DIR_NAME_FORMAT);
+						$input .= $buf;
+						break;
+					case 'file_bottle':
+						$buf = null;
+						$buf .= _GetImage($info, $attributeValue, FILE_DIR_BOTTLE_IMG, FILE_URL_BOTTLE_IMG, FILE_DIR_BOTTLE_IMG_TMP, FILE_URL_BOTTLE_IMG_TMP);
+						$input .= $buf;
+						break;
+					case 'file_design':
+						$buf = null;
+						$buf .= _GetImage($info, $attributeValue, FILE_DIR_DESIGN_IMG, FILE_URL_DESIGN_IMG, FILE_DIR_DESIGN_IMG_TMP, FILE_URL_DESIGN_IMG_TMP);
+						$input .= $buf;
+						break;
+					case 'file_character_j':
+						$buf = null;
+						$buf .= _GetImage($info, $attributeValue, FILE_DIR_CHARACTER_J_IMG, FILE_URL_CHARACTER_J_IMG, FILE_DIR_CHARACTER_J_IMG_TMP, FILE_URL_CHARACTER_J_IMG_TMP, null, FILE_CHARACTER_J_IMG_PX_SIZE_4_ADMIN);
+						$input .= $buf;
+						break;
+					case 'file_character_e':
+						$buf = null;
+						$buf .= _GetImage($info, $attributeValue, FILE_DIR_CHARACTER_E_IMG, FILE_URL_CHARACTER_E_IMG, FILE_DIR_CHARACTER_E_IMG_TMP, FILE_URL_CHARACTER_E_IMG_TMP, null, FILE_CHARACTER_E_IMG_PX_SIZE_4_ADMIN);
+						$input .= $buf;
+						break;
+
+					//交通事故サイト用 ------------------------------------------------ start
+					case 'label_status_history':
+						$buf = _GetInquiryStatusHistory($info);
+						$input .= $buf;
+						break;
+	//				case 'label_aftereffects_grade_decision_history':
+	//					$buf = _GetInquiryAftereffectsGradeDecisionHistory($info);
+	//					$input .= $buf;
+	//					break;
+					//交通事故サイト用 ------------------------------------------------ end
+
+					case 'xxx':
+						break;
+				}
+
+				if (isset($value['simple_suffix'])) {
+					$input .= $value['simple_suffix'];
+				} elseif (!_IsNull($value['suffix'])) {
+//					if (!_IsNull($input)) $input .= "\n";
+					$input .= $value['suffix'];
+				}
+				if (!_IsNull($value['simple_suffix_html'])) {
+					$input .= $value['simple_suffix_html'];
+				} elseif (!_IsNull($value['suffix_html'])) {
+//					if (!_IsNull($input)) $input .= "\n";
+					$input .= $value['suffix_html'];
+				}
+			}
+
+
+		}
+
+		if (!_IsNull($input)) {
+			if (isset($item['prefix']) && !_IsNull($item['prefix'])) {
+	//			$input = $item['prefix']."\n".$input;
+				$input = $item['prefix']."".$input;
+			}
+
+			if (isset($item['simple_prefix_html']) && !_IsNull($item['simple_prefix_html'])) {
+				$input = $item['simple_prefix_html']."".$input;
+			} elseif (isset($item['prefix_html']) && !_IsNull($item['prefix_html'])) {
+	//			$input = $item['prefix_html']."\n".$input;
+				$input = $item['prefix_html']."".$input;
+			}
+	//		if (isset($item['prefix_msg']) && !_IsNull($item['prefix_msg'])) {
+	//			$input = $item['prefix_msg']."\n".$input;
+	//		}
+
+			if (isset($item['suffix']) && !_IsNull($item['suffix'])) {
+	//			if (!_IsNull($input)) $input .= "\n";
+				$input .= $item['suffix'];
+			}
+			if (isset($item['simple_suffix_html']) && !_IsNull($item['simple_suffix_html'])) {
+				$input .= $item['simple_suffix_html'];
+			} elseif (isset($item['suffix_html']) && !_IsNull($item['suffix_html'])) {
+	//			if (!_IsNull($input)) $input .= "\n";
+				$input .= $item['suffix_html'];
+			}
+	//		if (isset($item['suffix_msg']) && !_IsNull($item['suffix_msg'])) {
+	//			if (!_IsNull($input)) $input .= "\n";
+	//			$input .= $item['suffix_msg'];
+	//		}
+		}
+
+
+//		$res .= "<tr>";
+
+//		$res .= "<tr";
+//		if (!_IsNull($trId)) {
+//			$res .= " ";
+//			$res .= $trId;
+//		}
+//		if (!_IsNull($trClass)) {
+//			$res .= " ";
+//			$res .= $trClass;
+//		}
+//		if (!_IsNull($trOption)) {
+//			$res .= " ";
+//			$res .= $trOption;
+//		}
+//		$res .= ">";
+//		$res .= "\n";
+
+		if ($simpleFlag) {
+			if (!_IsNull($input)) {
+				if (!_IsNull($simple)) $simple .= " ";
+				if (!_IsNull($label)) {
+					$simple .= $label;
+					$simple .= "：";
+				}
+				$simple .= $input;
+			}
+
+			if (isset($item['simple_end']) && !_IsNull($item['simple_end'])) {
+				if ($item['simple_end']) {
+
+//					$res .= "<dt>";
+//					$res .= $label;
+//					$res .= "</dt>";
+//					$res .= "\n";
+
+					if (!_IsNull($simpleMaxlength)) {
+						$simple = _SubStr($simple, $simpleMaxlength);
+						$simpleMaxlength = null;
+					}
+
+					if (!_IsNull($simple)) {
+						$res .= "<div class=\"info\">";
+						$res .= $simple;
+						$res .= "</div>";
+						$res .= "\n";
+					}
+
+					$simpleFlag = false;
+					$simple = null;
+				}
+			}
+
+		} else {
+//			$res .= "<dt>";
+//			$res .= $label;
+//			$res .= "</dt>";
+//			$res .= "\n";
+
+			if (!_IsNull($input)) {
+				$res .= "<div class=\"info\">";
+				if (!_IsNull($label)) {
+					$res .= $label;
+					$res .= "：";
+				}
+				if (!_IsNull($simpleMaxlength)) {
+					$input = _SubStr($input, $simpleMaxlength);
+					$simpleMaxlength = null;
+				}
+				$res .= $input;
+				$res .= "</div>";
+				$res .= "\n";
+			}
+		}
+	}
+
+	if (!_IsNull($res)) {
+		$buf = null;
+		$buf .= "<div class=\"list\">";
+		$buf .= "\n";
+		$buf .= $res;
+		$buf .= "</div>";
+		$buf .= "\n";
+
+		$res = $buf;
+	}
+
+	return $res;
+}
+/************************************/
+
+/**
+ * 完了用に表示するテーブルを作成する。
+ *
+ * @param	string	$message		メッセージ
+ * @param	array	$info			入力した値が格納されている配列
+ * @param	array	$loginInfo		ログイン情報
+ * @param	boolean	$allShowFlag	全て表示するか？hidden項目も表示するか？{true:全て表示する。/false:XML設定、権限による表示有無に従う。}
+ * @param	string	$clientName		クライアント名(サイト名)
+ * @param	string	$clientMail		クライアントE-Mail
+ * @param	string	$urlBase		"トップに戻る"に使用するURL
+ * @return	なし
+ * @access  public
+ * @since
+ */
+function _CreateTableEnd($message, $info = null, $loginInfo = null, $allShowFlag = false, $clientName = null, $clientMail = null, $urlBase = null) {
+
+	//名称を設定する。(※ここは要検討！！！)
+	$name = null;
+	if (isset($info['update']['tbl_user']['usr_name'])) {
+		$name = $info['update']['tbl_user']['usr_name'];
+	} elseif (isset($info['update']['tbl_link']['name'])) {
+		$name = $info['update']['tbl_link']['name'];
+	} elseif (isset($info['update']['usr']['name'])) {
+		$name = $info['update']['usr']['name'];
+	}
+
+	return null;
+
+	//この関数は、現在未使用･･･$messageは、_GetFormTable()で表示している。
+
+	$res = null;
+
+//	if (_IsNull($loginInfo)) {
+//		//管理画面以外の場合(問合せフォームなど)
+//
+//		$res .= "<div class=\"endMessage\">";
+//		$res .= "\n";
+//		$res .= "<div class=\"name\">";
+//		$res .= $name;
+//		$res .= "&nbsp;様";
+//		$res .= "</div>";
+//		$res .= "\n";
+//		$res .= "<div class=\"thanks\">";
+//		$res .= "\n";
+//		$res .= "この度は、『".$clientName."』にお問い合わせいただきありがとうございました。";
+//		$res .= "\n";
+//		$res .= "<br />";
+//		$res .= "\n";
+//		$res .= "お客様のメールアドレス宛てにお問い合わせの「確認メール」が自動送信されました。";
+//		$res .= "<br />";
+//		$res .= "\n";
+//		$res .= "お問い合わせ内容の確認後、改めて担当者より確認のご連絡をさしあげます。";
+//		$res .= "\n";
+//		$res .= "</div>";
+//		$res .= "\n";
+//		$res .= "<br />";
+//		$res .= "\n";
+//		$res .= "<div class=\"attention\">";
+//		$res .= "\n";
+//		$res .= "※「確認メール」が届かない場合は、メールアドレスがご登録ミスの可能性がありますので、";
+//		$res .= "\n";
+//		$res .= "<br />";
+//		$res .= "\n";
+//		$res .= "&nbsp;&nbsp;&nbsp;お手数ですが&nbsp;";
+//		$res .= "<a href=\"mailto:".$clientMail."\">".$clientMail."</a>";
+//		$res .= "&nbsp;までメールでお問い合わせください。";
+//		$res .= "\n";
+//
+//		if (!_IsNull($message)) {
+//			$res .= nl2br($message);
+//			$res .= "\n";
+//		}
+//
+//		$res .= "</div>";
+//		$res .= "\n";
+//		$res .= "<br />";
+//		$res .= "\n";
+//		$res .= "<div class=\"link\">";
+//		$res .= "\n";
+//		$res .= "<a href=\"".$urlBase."/\">トップページに戻る</a>";
+//		$res .= "\n";
+//		$res .= "</div>";
+//		$res .= "\n";
+//		$res .= "</div>";
+//		$res .= "\n";
+//
+//
+//	} else {
+//		//管理画面の場合
+//	}
+
+
+	if (!_IsNull($message)) {
+		$res .= nl2br($message);
+		$res .= "\n";
+	}
+
+
+	return $res;
+}
+
+
+/**
+ * 入力された値のhiddenを作成する。
+ *
+ * @param	array	$itemList	XMLを読み込んだ配列
+ * @param	string	$name		hiddenのname
+ * @return	なし
+ * @access  public
+ * @since
+ */
+function _CreateHidden($info, $name = null) {
+	$hidden = "";
+	if (_IsNull($info)) return $hidden;
+	foreach ($info as $key => $value) {
+		if (gettype($value) == 'array') {
+			if (_IsNull($name)) {
+				$hidden .= _CreateHidden($value, $key);
+			} else {
+				$hidden .= _CreateHidden($value, $name."[".$key."]");
+			}
+
+		} else {
+			$buf = "";
+			if (_IsNull($name)) {
+				$buf = $key;
+			} else {
+				$buf = $name."[".$key."]";
+			}
+			$hidden .= "<input type=\"hidden\" name=\"".$buf."\" value=\"".$value."\" />\n";
+		}
+	}
+	return $hidden;
+}
+
+/**
+ * メール本文を作成する。
+ *
+ * @param	array	$allList	XMLを読み込んだ配列
+ * @param	array	$info		入力した値が格納されている配列
+ * @return	なし
+ * @access  public
+ * @since
+ */
+function _CreateMailAll($allList, $info) {
+	$body = "";
+	foreach($allList as $key => $itemList) {
+
+		$multipleFlag = false;
+		$multipleCount = 1;
+
+		if (is_array($itemList)) {
+//			$body .= "--------------------------------------------------------\n";
+			$body .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+			$body .= $itemList['sub_title']."\n";
+//			$body .= "--------------------------------------------------------\n";
+			$body .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+
+			//複数入力か？
+			if (isset($itemList['multiple']) && !_IsNull($itemList['multiple']) && _IsHalfSizeNumeric($itemList['multiple'])) {
+				$multipleFlag = true;
+				$multipleCount = $itemList['multiple'];
+
+				//複数項目がJavaScriptで追加される場合もある。
+				if (isset($info['update'][$key]) && is_array($info['update'][$key])) {
+//					if ($multipleCount < count($info['update'][$key])) {
+//						$multipleCount = count($info['update'][$key]);
+//					}
+					$multipleCount = count($info['update'][$key]);
+				}
+			}
+		}
+
+		$resBuf = null;
+		for ($tIdx = 0; $tIdx < $multipleCount; $tIdx++) {
+			$resBuf .= _CreateMail($itemList['item'], $info, $key, $multipleFlag, $tIdx);
+			$resBuf .= "\n";
+		}
+
+		if (is_array($itemList)) {
+			if (isset($itemList['prefix']) && !_IsNull($itemList['prefix'])) {
+				$resBuf = $itemList['prefix']." ".$resBuf;
+			}
+			if (isset($itemList['prefix_mail']) && !_IsNull($itemList['prefix_mail'])) {
+				$resBuf = $itemList['prefix_mail']." ".$resBuf;
+			}
+//			if (isset($itemList['prefix_msg']) && !_IsNull($itemList['prefix_msg'])) {
+//				$resBuf = $itemList['prefix_msg']." ".$resBuf;
+//			}
+
+
+			if (isset($itemList['suffix']) && !_IsNull($itemList['suffix'])) {
+				if (!_IsNull($resBuf)) $resBuf .= " ";
+				$resBuf .= $itemList['suffix'];
+			}
+			if (isset($itemList['suffix_mail']) && !_IsNull($itemList['suffix_mail'])) {
+				if (!_IsNull($resBuf)) $resBuf .= " ";
+				$resBuf .= $itemList['suffix_mail'];
+			}
+//			if (isset($itemList['suffix_msg']) && !_IsNull($itemList['suffix_msg'])) {
+//				if (!_IsNull($resBuf)) $resBuf .= " ";
+//				$resBuf .= $itemList['suffix_msg'];
+//			}
+
+		}
+
+		$body .= $resBuf;
+		$body .= "\n";
+
+	}
+
+	$body = trim($body);
+//	$body = strip_tags($body);
+	return $body;
+}
+
+/**
+ * メール本文を作成する。
+ *
+ * @param	array	$itemList			XMLを読み込んだ配列
+ * @param	array	$info				入力した値が格納されている配列
+ * @param	string	$baseName			name属性の基本となる文字列(名称)
+ * @param	boolean	$tableMultipleFlag	テーブル単位で複数表示か？{true:複数表示する。/false:複数ではない。
+ * @param	int		$tIdx				テーブル単位で複数表示の場合のインデックス。
+ * @return	メール本文
+ * @access  public
+ * @since
+ */
+function _CreateMail($itemList, $info, $baseName, $tableMultipleFlag = false, $tIdx = 0) {
+	if (_IsNull($itemList)) return null;
+	if (!is_array($itemList)) return null;
+
+	$body = "";
+	foreach ($itemList as $key => $item) {
+
+		//項目のタイプは？(item単位)
+//		if (!$allShowFlag) {
+			if (isset($item['type'])) {
+				switch ($item['type']) {
+					case 'hidden':
+						//非表示にし、hiddenで表示する。
+						continue 2;
+						break;
+				}
+			}
+//		}
+
+		//show_mail=0の場合、メールには非表示にする。
+		if (isset($item['show_mail']) && !_IsNull($item['show_mail'])) {
+			if (!$item['show_mail']) {
+				continue;
+			}
+		}
+
+		$label = "";
+		switch (gettype($item['label'])) {
+			case 'array':
+				foreach ($item['label'] as $i => $value) {
+					if (!_IsNull($label)) $label .= " ";
+					$label .= $value;
+				}
+				break;
+			default:
+				$label .= "".$item['label']."";
+				break;
+		}
+
+		//複数入力か？
+		$multipleFlag = false;
+		$multipleCount = 1;
+		$multipleName = 'dummy_name';
+		if (isset($item['multiple']) && !_IsNull($item['multiple']) && _IsHalfSizeNumeric($item['multiple'])) {
+			$multipleFlag = true;
+			$multipleCount = $item['multiple'];
+
+			if (isset($item['multiple_name']) && !_IsNull($item['multiple_name'])) {
+				$multipleName = $item['multiple_name'];
+
+				//複数項目がJavaScriptで追加される場合もある。
+//				if (isset($info['update'][$baseName][$tIdx][$multipleName]) && is_array($info['update'][$baseName][$tIdx][$multipleName])) {
+//					$multipleCount = count($info['update'][$baseName][$tIdx][$multipleName]);
+//				}
+
+				if ($tableMultipleFlag) {
+					if (isset($info['update'][$baseName][$tIdx][$multipleName]) && is_array($info['update'][$baseName][$tIdx][$multipleName])) {
+						$multipleCount = count($info['update'][$baseName][$tIdx][$multipleName]);
+					}
+				} else {
+					if (isset($info['update'][$baseName][$multipleName]) && is_array($info['update'][$baseName][$multipleName])) {
+						$multipleCount = count($info['update'][$baseName][$multipleName]);
+					}
+				}
+
+			}
+		}
+
+		//項目のタイプは？
+		$input = "";
+
+		for ($mIdx = 0; $mIdx < $multipleCount; $mIdx++) {
+
+			$lfFlag = false;
+			foreach ($item['input'] as $i => $value) {
+
+				if (isset($value['prefix_mail_lf']) && $value['prefix_mail_lf']) {
+					$input .= "\n";
+					$lfFlag = true;
+				}
+
+				if (!$lfFlag) {
+					if (!_IsNull($input)) $input .= " ";
+				} else {
+					$lfFlag = false;
+				}
+
+				if (!_IsNull($value['prefix_mail'])) {
+					$input .= $value['prefix_mail']." ";
+				}
+				if (!_IsNull($value['prefix'])) {
+					$input .= $value['prefix']." ";
+				}
+
+//				//valueを設定する。
+//				$attributeValue = $info['update'][$baseName][$value['name']];
+
+				if ($tableMultipleFlag) {
+					if ($multipleFlag) {
+						//nameを設定する。
+						$attributeName = "update[".$baseName."][".$tIdx."][".$multipleName."][".$mIdx."][".$value['name']."]";
+						//valueを設定する。
+						$attributeValue = $info['update'][$baseName][$tIdx][$multipleName][$mIdx][$value['name']];
+					} else {
+						//nameを設定する。
+						$attributeName = "update[".$baseName."][".$tIdx."][".$value['name']."]";
+						//valueを設定する。
+						$attributeValue = $info['update'][$baseName][$tIdx][$value['name']];
+					}
+				} else {
+					if ($multipleFlag) {
+						//nameを設定する。
+						$attributeName = "update[".$baseName."][".$multipleName."][".$mIdx."][".$value['name']."]";
+						//valueを設定する。
+						$attributeValue = $info['update'][$baseName][$multipleName][$mIdx][$value['name']];
+					} else {
+						//nameを設定する。
+						$attributeName = "update[".$baseName."][".$value['name']."]";
+						//valueを設定する。
+						$attributeValue = $info['update'][$baseName][$value['name']];
+					}
+				}
+
+				switch ($value['type']) {
+					case 'text':
+						$input .= $attributeValue;
+						break;
+					case 'password':
+						$input .= "<<非表示>>";
+						break;
+					case 'textarea':
+						$input .= "\n";
+						$input .= $attributeValue;
+						$lfFlag = true;
+						break;
+					case 'select':
+						if (isset($value['parameter']['nameId']) && !_IsNull($value['parameter']['nameId'])) {
+							$input .= _GetValueFromList($value['parameter']['list'], $attributeValue, $value['parameter']['nameId']);
+						} else {
+							$input .= _GetValueFromList($value['parameter']['list'], $attributeValue);
+						}
+						break;
+					case 'radio':
+						if (isset($value['parameter']['nameId4mail']) && !_IsNull($value['parameter']['nameId4mail'])) {
+							$input .= _GetValueFromList($value['parameter']['list'], $attributeValue, $value['parameter']['nameId4mail']);
+						} elseif (isset($value['parameter']['nameId']) && !_IsNull($value['parameter']['nameId'])) {
+							$input .= _GetValueFromList($value['parameter']['list'], $attributeValue, $value['parameter']['nameId']);
+						} else {
+							$input .= _GetValueFromList($value['parameter']['list'], $attributeValue);
+						}
+						break;
+//					case 'checkbox':
+//						$buf = "";
+//						if (isset($attributeValue)) {
+//							foreach ($attributeValue as $no => $id) {
+//								if (!_IsNull($buf)) $buf .= ",";
+//	//							$buf .= _GetValueFromList($value['parameter']['list'], $id);
+//
+//								if (isset($value['parameter']['nameId4confirm'])) {
+//									$buf .= _GetValueFromList($value['parameter']['list'], $id, $value['parameter']['nameId4confirm']);
+//								} else {
+//									$buf .= _GetValueFromList($value['parameter']['list'], $id);
+//								}
+//
+//							}
+//						}
+//						$input .= $buf;
+//						break;
+
+
+					case 'checkbox':
+						$buf = "";
+						if (isset($attributeValue)) {
+							foreach ($attributeValue as $no => $id) {
+//								if (!_IsNull($buf)) $buf .= ",";
+								if (!_IsNull($buf)) $buf .= "\n";
+								if (isset($value['parameter']['nameId4mail']) && !_IsNull($value['parameter']['nameId4mail'])) {
+									$buf .= _GetValueFromList($value['parameter']['list'], $id, $value['parameter']['nameId4mail']);
+								} elseif (isset($value['parameter']['nameId4confirm']) && !_IsNull($value['parameter']['nameId4confirm'])) {
+									$buf .= _GetValueFromList($value['parameter']['list'], $id, $value['parameter']['nameId4confirm']);
+								} else {
+									$buf .= _GetValueFromList($value['parameter']['list'], $id);
+								}
+							}
+
+							if (!_IsNull($buf)) {
+								if (count($attributeValue) > 1) {
+									$buf = "\n".$buf."\n";
+								}
+							}
+						}
+						$input .= $buf;
+						break;
+					case 'label':
+						$input .= $attributeValue;
+						break;
+					case 'label_from_list':
+						$buf = null;
+						if (isset($value['parameter']['nameId']) && !_IsNull($value['parameter']['nameId'])) {
+							$buf .= _GetValueFromList($value['parameter']['list'], $attributeValue, $value['parameter']['nameId']);
+						} else {
+							$buf .= _GetValueFromList($value['parameter']['list'], $attributeValue);
+						}
+						$input .= $buf;
+						break;
+					case 'flag':
+						$checked = "-";
+						if ($attributeValue == '1') $checked = "○";
+						$input .= $checked;
+						break;
+					case 'xxx':
+						break;
+				}
+				if (!_IsNull($value['suffix'])) {
+					$input .= " ".$value['suffix'];
+				}
+				if (!_IsNull($value['suffix_mail'])) {
+					$input .= " ".$value['suffix_mail'];
+				}
+				if (isset($value['suffix_mail_lf']) && $value['suffix_mail_lf']) {
+					$input .= "\n";
+					$lfFlag = true;
+				}
+			}
+		}
+
+		if (isset($item['prefix']) && !_IsNull($item['prefix'])) {
+			$input = $item['prefix']." ".$input;
+		}
+		if (isset($item['prefix_mail']) && !_IsNull($item['prefix_mail'])) {
+			$input = $item['prefix_mail']." ".$input;
+		}
+//		if (isset($item['prefix_msg']) && !_IsNull($item['prefix_msg'])) {
+//			$input = $item['prefix_msg']." ".$input;
+//		}
+
+
+		if (isset($item['suffix']) && !_IsNull($item['suffix'])) {
+			if (!_IsNull($input)) $input .= " ";
+			$input .= $item['suffix'];
+		}
+		if (isset($item['suffix_mail']) && !_IsNull($item['suffix_mail'])) {
+			if (!_IsNull($input)) $input .= " ";
+			$input .= $item['suffix_html'];
+		}
+//		if (isset($item['suffix_msg']) && !_IsNull($item['suffix_msg'])) {
+//			if (!_IsNull($input)) $input .= " ";
+//			$input .= $item['suffix_msg'];
+//		}
+
+		$body .= $label."：".$input;
+		$body .= "\n";
+	}
+	return $body;
+}
+
+/**
+ * 入力値のチェックをする。
+ *
+ * @param	array	$allList	XMLを読み込んだ配列
+ * @param	array	$info		入力した値が格納されている配列
+ * @return	string	エラーメッセージ
+ * @access  public
+ * @since
+ */
+function _CheackInputAll($allList, &$info) {
+	$message = "";
+	foreach($allList as $key => $itemList) {
+
+		$multipleFlag = false;
+		$multipleCount = 1;
+
+		if (is_array($itemList)) {
+			//複数入力か？
+			if (isset($itemList['multiple']) && !_IsNull($itemList['multiple']) && _IsHalfSizeNumeric($itemList['multiple'])) {
+				$multipleFlag = true;
+				$multipleCount = $itemList['multiple'];
+
+				//複数項目がJavaScriptで追加される場合もある。
+				if (isset($info['update'][$key]) && is_array($info['update'][$key])) {
+//					if ($multipleCount < count($info['update'][$key])) {
+//						$multipleCount = count($info['update'][$key]);
+//					}
+					$multipleCount = count($info['update'][$key]);
+				}
+			}
+		}
+
+		for ($tIdx = 0; $tIdx < $multipleCount; $tIdx++) {
+			//削除フラグがチェックONの場合、削除するのでエラーチェックを免除する。
+			if (isset($itemList['multiple_del_flag_name']) && !_IsNull($itemList['multiple_del_flag_name'])) {
+				if (isset($info['update'][$key][$tIdx][$itemList['multiple_del_flag_name']]) && $info['update'][$key][$tIdx][$itemList['multiple_del_flag_name']] == DELETE_FLAG_YES) {
+					continue;
+				}
+			}
+
+			$message .= _CheackInput($itemList['item'], $info, $key, $multipleFlag, $tIdx);
+		}
+
+
+	}
+	return $message;
+}
+
+/**
+ * 入力値のチェックをする。
+ *
+ * @param	array	$itemList			XMLを読み込んだ配列
+ * @param	array	$info				入力した値が格納されている配列
+ * @param	string	$baseName			name属性の基本となる文字列(名称)
+ * @param	boolean	$tableMultipleFlag	テーブル単位で複数表示か？{true:複数表示する。/false:複数ではない。
+ * @param	int		$tIdx				テーブル単位で複数表示の場合のインデックス。 * @return	string	エラーメッセージ
+ * @access  public
+ * @since
+ */
+function _CheackInput($itemList, &$info, $baseName, $tableMultipleFlag = false, $tIdx = 0) {
+
+	$logLevel = 3;
+	_Log("[_CheackInput] start.", $logLevel);
+
+
+	if (_IsNull($itemList)) {
+		_Log("[_CheackInput] \$itemList is null.", $logLevel);
+		_Log("[_CheackInput] end.", $logLevel);
+		return null;
+	}
+	if (!is_array($itemList)) {
+		_Log("[_CheackInput] \$itemList is't array.", $logLevel);
+		_Log("[_CheackInput] end.", $logLevel);
+		return null;
+	}
+
+	//テーブルのフィールド情報を取得する。→maxlengthに使用する。
+	$colInfo = _DB_GetColumnsInfo($baseName);
+
+	_Log("[_CheackInput] テーブル名 = '".$baseName."'", $logLevel);
+	_Log("[_CheackInput] テーブルのフィールド情報 = '".print_r($colInfo,true)."'", $logLevel);
+
+
+	$message = "";
+	$sameList = array();
+	foreach ($itemList as $key => $item) {
+		$label = "";
+		switch (gettype($item['label'])) {
+			case 'array':
+				foreach ($item['label'] as $i => $value) {
+					if (!_IsNull($label)) $label .= " ";
+					$label .= $value;
+				}
+				break;
+			default:
+				$label .= "".$item['label']."";
+				break;
+		}
+
+		$bufColInfo = $colInfo;
+
+		//複数入力か？
+		$multipleFlag = false;
+		$multipleCount = 1;
+		$multipleName = 'dummy_name';
+		if (isset($item['multiple']) && !_IsNull($item['multiple']) && _IsHalfSizeNumeric($item['multiple'])) {
+			$multipleFlag = true;
+			$multipleCount = $item['multiple'];
+
+			if (isset($item['multiple_name']) && !_IsNull($item['multiple_name'])) {
+				$multipleName = $item['multiple_name'];
+
+				//テーブルのフィールド情報を取得する。→maxlengthに使用する。
+				$colInfo4multiple = _DB_GetColumnsInfo($multipleName);
+
+				_Log("[_CheackInput] {multiple} テーブル名 = '".$multipleName."'", $logLevel);
+				_Log("[_CheackInput] {multiple} テーブルのフィールド情報 = '".print_r($colInfo4multiple,true)."'", $logLevel);
+
+				if (!_IsNull($colInfo4multiple)) $colInfo = $colInfo4multiple;
+
+//				//複数項目がJavaScriptで追加される場合もある。
+//				if (isset($info['update'][$baseName][$tIdx][$multipleName]) && is_array($info['update'][$baseName][$tIdx][$multipleName])) {
+//					$multipleCount = count($info['update'][$baseName][$tIdx][$multipleName]);
+//				}
+
+				if ($tableMultipleFlag) {
+					if (isset($info['update'][$baseName][$tIdx][$multipleName]) && is_array($info['update'][$baseName][$tIdx][$multipleName])) {
+						$multipleCount = count($info['update'][$baseName][$tIdx][$multipleName]);
+					}
+				} else {
+					if (isset($info['update'][$baseName][$multipleName]) && is_array($info['update'][$baseName][$multipleName])) {
+						$multipleCount = count($info['update'][$baseName][$multipleName]);
+					}
+				}
+			}
+		}
+
+		_Log("[_CheackInput] {multiple} 複数入力か？ = '".$multipleCount."'", $logLevel);
+
+		for ($mIdx = 0; $mIdx < $multipleCount; $mIdx++) {
+
+			//削除フラグがチェックONの場合、削除するのでエラーチェックを免除する。
+			if (isset($item['multiple_del_flag_name']) && !_IsNull($item['multiple_del_flag_name'])) {
+//				if (isset($info['update'][$baseName][$tIdx][$multipleName][$mIdx][$item['multiple_del_flag_name']]) && $info['update'][$baseName][$tIdx][$multipleName][$mIdx][$item['multiple_del_flag_name']] == DELETE_FLAG_YES) {
+//					continue;
+//				}
+
+				if ($tableMultipleFlag) {
+					if (isset($info['update'][$baseName][$tIdx][$multipleName][$mIdx][$item['multiple_del_flag_name']]) && $info['update'][$baseName][$tIdx][$multipleName][$mIdx][$item['multiple_del_flag_name']] == DELETE_FLAG_YES) {
+						continue;
+					}
+				} else {
+					if (isset($info['update'][$baseName][$multipleName][$mIdx][$item['multiple_del_flag_name']]) && $info['update'][$baseName][$multipleName][$mIdx][$item['multiple_del_flag_name']] == DELETE_FLAG_YES) {
+						continue;
+					}
+				}
+			}
+
+
+			$errFlag = true;
+			$typeCount = 0;
+			$bufMessage = "";
+			foreach ($item['input'] as $i => $value) {
+
+	//			//nameを設定する。
+	//			$attributeName = $baseName."[".$value['name']."]";
+	//			//valueを設定する。
+	//			$attributeValue = $info['update'][$baseName][$value['name']];
+
+				$label4multiple = null;
+
+				if ($tableMultipleFlag) {
+					if ($multipleFlag) {
+						//nameを設定する。
+						$attributeName = "update[".$baseName."][".$tIdx."][".$multipleName."][".$mIdx."][".$value['name']."]";
+						//valueを設定する。
+						$attributeValue = $info['update'][$baseName][$tIdx][$multipleName][$mIdx][$value['name']];
+
+						$label4multiple = ($tIdx+1)."-".($mIdx+1);
+					} else {
+						//nameを設定する。
+						$attributeName = "update[".$baseName."][".$tIdx."][".$value['name']."]";
+						//valueを設定する。
+						$attributeValue = $info['update'][$baseName][$tIdx][$value['name']];
+
+						$label4multiple = ($tIdx+1);
+					}
+				} else {
+					if ($multipleFlag) {
+						//nameを設定する。
+						$attributeName = "update[".$baseName."][".$multipleName."][".$mIdx."][".$value['name']."]";
+						//valueを設定する。
+						$attributeValue = $info['update'][$baseName][$multipleName][$mIdx][$value['name']];
+
+						$label4multiple = ($mIdx+1);
+
+					} else {
+						//nameを設定する。
+						$attributeName = "update[".$baseName."][".$value['name']."]";
+						//valueを設定する。
+						$attributeValue = $info['update'][$baseName][$value['name']];
+					}
+				}
+
+				//「半角」-「全角」を変換する。
+				switch ($value['type']) {
+					case 'text':
+					case 'password':
+					case 'textarea':
+						//全角(全部)
+						if (isset($value['full_size']) && $value['full_size']) {
+							//XMLに設定済みの場合、XMLの設定値を優先する。
+							//「半角」英数字を「全角」に変換する。'A'
+							//「半角カタカナ」を「全角カタカナ」に変換する。'K'
+							//濁点付きの文字を一文字に変換する。'V'
+							//「半角」スペースを「全角」に変換する。'S'
+							$attributeValue = mb_convert_kana($attributeValue, 'AKVS');
+							//変換できてない文字を変換する。(最後のは「~チルダ」)
+							$searchList = array( '"', '\'', '\\', chr(hexdec('7E')));
+							$replaceList = array('”', '’', '￥', chr(hexdec('A1')).chr(hexdec('C1')));
+							$attributeValue = str_replace($searchList, $replaceList, $attributeValue);
+						//全角カナ
+						} elseif (isset($value['full_size_kana']) && $value['full_size_kana']) {
+							//XMLに設定済みの場合、XMLの設定値を優先する。
+							//「半角カタカナ」を「全角カタカナ」に変換する。'K'
+							//濁点付きの文字を一文字に変換する。'V'
+							//「全角ひらがな」を「全角カタカナ」に変換する。'C'
+							//「半角」スペースを「全角」に変換する。'S'
+							$attributeValue = mb_convert_kana($attributeValue, 'KVCS');
+						//半角(全部)
+						} elseif (isset($value['half_size']) && $value['half_size']) {
+							//XMLに設定済みの場合、XMLの設定値を優先する。
+							//「全角」英数字を「半角」に変換する。'a'
+							//「全角カタカナ」を「半角カタカナ」に変換する。'k'
+							//「全角ひらがな」を「半角カタカナ」に変換する。'h'
+							//「全角」スペースを「半角」に変換する。's'
+							$attributeValue = mb_convert_kana($attributeValue, 'akhs');
+						//半角英数字記号
+						} elseif (isset($value['half_size_char']) && $value['half_size_char']) {
+							//XMLに設定済みの場合、XMLの設定値を優先する。
+							//「全角」英数字を「半角」に変換する。'a'
+							//「全角」スペースを「半角」に変換する。's'
+							$attributeValue = mb_convert_kana($attributeValue, 'as');
+							//変換できてない文字を変換する。(最後のは「~チルダ」)
+							$searchList = array('”', '’', '￥', chr(hexdec('A1')).chr(hexdec('C1')), '‐');
+							$replaceList = array('"', '\'', '\\', chr(hexdec('7E')), '-');
+							$attributeValue = str_replace($searchList, $replaceList, $attributeValue);
+						//半角数字
+						} if (isset($value['int']) && $value['int']) {
+							//XMLに設定済みの場合、XMLの設定値を優先する。
+							//「全角」英数字を「半角」に変換する。'a'
+							$attributeValue = mb_convert_kana($attributeValue, 'a');
+						} else {
+							if (!_IsNull($colInfo)) {
+								switch ($colInfo[$value['name']]['TypeOnly']) {
+									case 'int':
+									case 'bigint':
+									case 'double':
+										//「全角」英数字を「半角」に変換する。
+										$attributeValue = mb_convert_kana($attributeValue, 'a');
+										break;
+								}
+							}
+						}
+
+						//「株式会社」前後のスペースを削除する、
+						if (isset($value['company_name_type_space']) && $value['company_name_type_space']) {
+							$attributeValue = preg_replace('/[ 　]*株式会社[ 　]*/', '株式会社', $attributeValue);
+						}
+						//「合同会社」前後のスペースを削除する、
+						if (isset($value['company_name_type_space_llc']) && $value['company_name_type_space_llc']) {
+							$attributeValue = preg_replace('/[ 　]*合同会社[ 　]*/', '合同会社', $attributeValue);
+						}
+
+						//変換した値を戻す。
+						if ($tableMultipleFlag) {
+							if ($multipleFlag) {
+								//valueを設定する。
+								if (isset($info['update'][$baseName][$tIdx][$multipleName][$mIdx][$value['name']])) {
+									$info['update'][$baseName][$tIdx][$multipleName][$mIdx][$value['name']] = $attributeValue;
+								}
+							} else {
+								//valueを設定する。
+								if (isset($info['update'][$baseName][$tIdx][$value['name']])) {
+									$info['update'][$baseName][$tIdx][$value['name']] = $attributeValue;
+								}
+							}
+						} else {
+							if ($multipleFlag) {
+								//valueを設定する。
+								if (isset($info['update'][$baseName][$multipleName][$mIdx][$value['name']])) {
+									$info['update'][$baseName][$multipleName][$mIdx][$value['name']] = $attributeValue;
+								}
+							} else {
+								//valueを設定する。
+								if (isset($info['update'][$baseName][$value['name']])) {
+									$info['update'][$baseName][$value['name']] = $attributeValue;
+								}
+							}
+						}
+						break;
+				}
+
+
+				if (!_IsNull($label4multiple)) $label4multiple = " [".$label4multiple."] ";
+
+				//必須チェック
+				if ($item['required']) {
+					if ($value['required']) {
+						if (_IsNull($attributeValue)) $errFlag = false;
+					}
+				}
+
+				switch ($value['type']) {
+					case 'text':
+						break;
+					case 'password':
+						break;
+					case 'textarea':
+						break;
+					case 'select':
+					case 'radio':
+					case 'checkbox':
+					case 'flag':
+						$typeCount++;
+						break;
+					case 'xxx':
+						break;
+				}
+
+
+
+				switch ($value['type']) {
+					case 'text':
+					case 'password':
+					case 'textarea':
+						//文字列長チェック
+						//maxlengthを設定する。
+						$maxlength = null;
+						//テーブルが存在する場合、フィールドのサイズを設定する。
+						if (!_IsNull($colInfo)) {
+							if (isset($colInfo[$value['name']]['Size']) && !_IsNull($colInfo[$value['name']]['Size'])) {
+								$maxlength = $colInfo[$value['name']]['Size'];
+							}
+						}
+						//XMLに設定済みの場合、XMLの設定値を設定する。
+						if (isset($value['maxlength']) && !_IsNull($value['maxlength'])) $maxlength = $value['maxlength'];
+
+						if (!_IsNull($maxlength)) {
+							if (_IsMaxLength($attributeValue, $maxlength)) {
+								$bufMessage .= $value['label'].$label4multiple."は、".$maxlength."文字以内で入力してください。(全角文字は2文字として扱っています。)\n";
+							}
+						}
+
+						//全角(全部)
+						if (isset($value['full_size']) && $value['full_size']) {
+							//XMLに設定済みの場合、XMLの設定値を優先する。
+
+							//※全角に変換するので、チェックなし。
+						//全角カナ
+						} elseif (isset($value['full_size_kana']) && $value['full_size_kana']) {
+							//XMLに設定済みの場合、XMLの設定値を優先する。
+
+							//全角カナチェック
+							if (!_IsFullSizeKana($attributeValue)) {
+//								$bufMessage .= $value['label'].$label4multiple."は、全角カタナカで入力してください。\n";
+								$bufMessage .= $label.$label4multiple."は、全角カタカナで入力してください。\n";
+							}
+						//半角(全部)
+						} elseif (isset($value['half_size']) && $value['half_size']) {
+							//XMLに設定済みの場合、XMLの設定値を優先する。
+
+							//※現在は未使用。
+						//半角英数字記号
+						} elseif (isset($value['half_size_char']) && $value['half_size_char']) {
+							//XMLに設定済みの場合、XMLの設定値を優先する。
+
+							//半角英数字記号チェック
+							if (!_IsHalfSizeChar($attributeValue)) {
+//								$bufMessage .= $value['label'].$label4multiple."は、半角英数字・半角記号で入力してください。\n";
+								$bufMessage .= $label.$label4multiple."は、半角英数字・半角記号で入力してください。\n";
+							}
+						//半角数字チェック
+						} elseif (isset($value['int']) && $value['int']) {
+							//XMLに設定済みの場合、XMLの設定値を優先する。
+
+							//半角数字＋マイナス(-)チェック
+							if (!_IsHalfSizeNumericMinus($attributeValue)) {
+//								$bufMessage .= $value['label'].$label4multiple."は、半角数字(整数)で入力してください。\n";
+								$bufMessage .= $label.$label4multiple."は、半角数字で入力してください。\n";
+							}
+						} else {
+							if (!_IsNull($colInfo)) {
+								switch ($colInfo[$value['name']]['TypeOnly']) {
+									case 'int':
+									case 'bigint':
+										//半角数字＋マイナス(-)チェック
+										if (!_IsHalfSizeNumericMinus($attributeValue)) {
+//											$bufMessage .= $value['label'].$label4multiple."は、半角数字(整数)で入力してください。\n";
+											$bufMessage .= $label.$label4multiple."は、半角数字で入力してください。\n";
+										}
+										break;
+									case 'double':
+										//半角数字＋ドット(.)＋マイナス(-)チェック
+										if (!_IsHalfSizeNumericDotMinus($attributeValue)) {
+//											$bufMessage .= $value['label'].$label4multiple."は、半角数字(実数)で入力してください。\n";
+											$bufMessage .= $label.$label4multiple."は、半角数字で入力してください。\n";
+										}
+										break;
+								}
+							}
+						}
+
+
+						break;
+				}
+
+
+
+
+				//E-Mail書式チェック
+				if ($value['e_mail']) {
+//					if(!_IsEMail($attributeValue)) $bufMessage .= $value['label']."の書式に誤りがあります。\n";
+					if(!_IsEMail($attributeValue)) $bufMessage .= $label."に誤りがあります。\n";
+				}
+
+				//パスワード書式チェック
+				if ($value['password']) {
+//					if(!_IsPassword($attributeValue)) $bufMessage .= $value['label']."の書式に誤りがあります。\n";
+					if(!_IsPassword($attributeValue)) $bufMessage .= $label."に誤りがあります。\n";
+				}
+
+				//商号(会社名)タイプチェック
+				if ($value['company_name_type']) {
+//					if(!_IsCompanyNameType($attributeValue, '株式会社')) $bufMessage .= $value['label']."は「株式会社」を前か後ろに入力してください。\n";
+					if(!_IsCompanyNameType($attributeValue, '株式会社')) $bufMessage .= $label."は「株式会社」を前か後ろに入力してください。\n";
+				}
+
+				//商号(会社名)タイプチェック
+				if ($value['company_name_type_llc']) {
+//					if(!_IsCompanyNameType($attributeValue, '合同会社')) $bufMessage .= $value['label']."は「合同会社」を前か後ろに入力してください。\n";
+					if(!_IsCompanyNameType($attributeValue, '合同会社')) $bufMessage .= $label."は「合同会社」を前か後ろに入力してください。\n";
+				}
+
+				//商号(会社名)記号チェック
+				if ($value['company_name_mark']) {
+//					if(!_IsCompanyNameMark($attributeValue)) $bufMessage .= $value['label']."に使用できない記号が入力されています。\n";
+					if(!_IsCompanyNameMark($attributeValue)) $bufMessage .= $label."に使用できない記号が入力されています。\n";
+				}
+
+				//比較チェック
+				if (isset($value['same']) && !_IsNull($value['same'])) {
+					if (isset($sameList[$value['same']])) {
+//						if ($sameList[$value['same']]['value'] != $attributeValue) $bufMessage .= $sameList[$value['same']]['label'].$label4multiple."と".$value['label'].$label4multiple."が異なります。\n";
+						if ($sameList[$value['same']]['value'] != $attributeValue) $bufMessage .= $sameList[$value['same']]['label'].$label4multiple."と".$label.$label4multiple."が異なります。\n";
+						unset($sameList[$value['same']]);
+					} else {
+						//比較対照の項目がくるまで保存する。
+//						$sameList[$value['same']] = array('label' => $value['label'], 'value' => $attributeValue);
+						$sameList[$value['same']] = array('label' => $label, 'value' => $attributeValue);
+					}
+				}
+
+				//日付チェック
+				if ($value['date']) {
+//					if(!_IsDate($attributeValue)) $bufMessage .= $value['label'].$label4multiple."の日付フォーマットに誤りがあります。([YYYY-MM-DD hh:mm:ss] 又は、[YYYY-MM-DD])\n";
+					if(!_IsDate($attributeValue)) $bufMessage .= $label.$label4multiple."の日付フォーマットに誤りがあります。([YYYY-MM-DD hh:mm:ss] 又は、[YYYY-MM-DD])\n";
+				}
+
+			}
+			$typeMsg = "入力";
+			if (count($item['input']) == $typeCount) $typeMsg = "選択";
+			if (!$errFlag) {
+				//$bufMessage .= $label.$label4multiple."を".$typeMsg."してください。\n".$bufMessage;
+				$bufMessage = $label.$label4multiple."を".$typeMsg."してください。\n".$bufMessage;
+			}
+
+			$message .= $bufMessage;
+		}
+
+		$colInfo = $bufColInfo;
+
+//		//E-Mail書式チェック
+//		foreach ($item['input'] as $i => $value) {
+//
+//			//nameを設定する。
+//			$attributeName = $baseName."[".$value['name']."]";
+//			//valueを設定する。
+//			$attributeValue = $info[$baseName][$value['name']];
+//
+//			if ($value['e_mail']) {
+//				if(!_IsEMail($attributeValue)) $message .= $value['label']."の書式に誤りがあります。<br />";
+//			}
+//		}
+//
+//		//比較チェック
+//		foreach ($item['input'] as $i => $value) {
+//
+//			//nameを設定する。
+//			$attributeName = $baseName."[".$value['name']."]";
+//			//valueを設定する。
+//			$attributeValue = $info[$baseName][$value['name']];
+//
+//			if (isset($value['same']) && !_IsNull($value['same'])) {
+//				if (isset($sameList[$value['same']])) {
+//					if ($sameList[$value['same']]['value'] != $attributeValue) $message .= $sameList[$value['same']]['label']."と".$value['label']."が異なります。<br />";
+//					unset($sameList[$value['same']]);
+//				} else {
+//					//比較対照の項目がくるまで保存する。
+//					$sameList[$value['same']] = array('label' => $value['label'], 'value' => $attributeValue);
+//				}
+//			}
+//		}
+
+	}
+
+	$messageList1 = explode("\n", $message);
+	_Log("[_CheackInput] 結果編集 = '".print_r($messageList1, true)."'", $logLevel);
+	$messageList2 = array();
+	$msgNo = 0;
+	foreach ($messageList1 as $bufMessage) {
+		if (_IsNull($bufMessage)) continue;
+		$msgNo++;
+		$messageList2[$bufMessage] = $msgNo;
+	}
+	_Log("[_CheackInput] 結果編集(同一メッセージ削除) = '".print_r($messageList2, true)."'", $logLevel);
+	$messageList3 = array_flip($messageList2);
+	_Log("[_CheackInput] 結果編集(キー/値反転) = '".print_r($messageList3, true)."'", $logLevel);
+	ksort($messageList3);
+	_Log("[_CheackInput] 結果編集(ソート) = '".print_r($messageList3, true)."'", $logLevel);
+	$message2 = null;
+	foreach ($messageList3 as $bufMessage) {
+		$message2 .= $bufMessage;
+		$message2 .= "\n";
+	}
+
+	_Log("[_CheackInput] 結果(old) = '".$message."'", $logLevel);
+	_Log("[_CheackInput] 結果(new) = '".$message2."'", $logLevel);
+
+	_Log("[_CheackInput] end.", $logLevel);
+
+//	return $message;
+	return $message2;
+}
+
+
+/**
+ * XMLファイル名、ターゲットIDから初期値を取得する。
+ *
+ * @param	string	$xmlName		XMLファイル名
+ * @param	string	$id				ターゲットID
+ * @param	boolean	$undeleteOnly	未削除データのみ取得するか？{true:未削除データ対象/false:全データ対象}
+ * @return	mixed	初期値
+ * @access  public
+ * @since
+ */
+function _GetDefaultInfo($xmlName, $id, $undeleteOnly = true) {
+	_Log("[_GetDefaultInfo] start.");
+
+	_Log("[_GetDefaultInfo] (param) XMLファイル名 = '".$xmlName."'");
+	_Log("[_GetDefaultInfo] (param) ターゲットID = '".$id."'");
+	_Log("[_GetDefaultInfo] (param) 未削除データのみ取得するか？{true:未削除データ対象/false:全データ対象} = '".$undeleteOnly."'");
+
+	if (_IsNull($xmlName)) {
+		_Log("[_GetDefaultInfo] XmlName is null.");
+		_Log("[_GetDefaultInfo] end.");
+		return null;
+	}
+//	if (_IsNull($id)) {
+//		_Log("[_GetDefaultInfo] Id is null.");
+//		_Log("[_GetDefaultInfo] end.");
+//		return null;
+//	}
+
+	$info = null;
+
+	//初期値を設定する。
+	switch ($xmlName) {
+		case XML_NAME_USER:
+			//ユーザー情報
+		case XML_NAME_USER_OEM:
+			//ユーザー情報(OEM・代理店制度用)
+		case XML_NAME_CANCEL:
+			//登録解除
+
+			//初期値を取得する。
+			$info = _GetUserInfo($id, $undeleteOnly);
+
+			if (_IsNull($info)) {
+				//取得できなかった場合、新規登録となる。→初期値を設定する。
+			} else {
+				//確認用項目にも値を設定する。
+				$info['tbl_user']['usr_e_mail_confirm'] = $info['tbl_user']['usr_e_mail'];			//顧客テーブル.E-Mail(確認)
+				$info['tbl_user']['usr_pass_confirm'] = $info['tbl_user']['usr_pass'];				//顧客テーブル.パスワード(確認)
+			}
+
+			break;
+
+		case XML_NAME_CMP:
+			//株式会社設立情報
+		case XML_NAME_LLC:
+			//合同会社設立情報
+
+			//初期値を取得する。
+			$info = _GetCompanyInfo($id, $undeleteOnly);
+
+			if (_IsNull($info)) {
+				//取得できなかった場合、新規登録となる。→初期値を設定する。
+			} else {
+			}
+
+			break;
+
+		///// ↑使用    ↓未使用
+
+
+		case XML_NAME_ITEM;
+			//商品情報
+
+			//初期値を取得する。
+			$info = _GetItemInfo($id, $undeleteOnly);
+
+			if (_IsNull($info)) {
+//				//取得できなかった場合、新規登録となる。→初期値を設定する。
+//				$info['tbl_user']['usr_auth_id'] = USER_AUTH_NON;										//顧客テーブル.権限="権限無し"
+//				$info['tbl_inquiry']['iuq_status_id'] = MST_STATUS_ID_NON_COPE;							//問合せテーブル.状況ID="未対応"
+//				$info['tbl_inquiry_traffic_accident']['iuq_tac_start_price'] = INQUIRY_START_PRICE;	//問合せ_交通事故テーブル.着手金額="xxxx"円
+			}
+
+			break;
+
+		case XML_NAME_BOTTLE_IMAGE;
+			//ボトル画像情報
+
+			//初期値を取得する。
+			$info = _GetBottleImageInfo($id, $undeleteOnly);
+
+			break;
+
+		case XML_NAME_DESIGN_IMAGE:
+			//彫刻パターン画像情報
+
+			//初期値を取得する。
+			$info = _GetDesignInfo($id, $undeleteOnly);
+
+			break;
+
+		case XML_NAME_CHARACTER_J_IMAGE:
+			//彫刻文字(和字)画像情報
+
+			//初期値を取得する。
+			$info = _GetCharacterJInfo($id, $undeleteOnly);
+
+			break;
+
+		case XML_NAME_CHARACTER_E_IMAGE:
+			//彫刻文字(英字)画像情報
+
+			//初期値を取得する。
+			$info = _GetCharacterEInfo($id, $undeleteOnly);
+
+			break;
+
+		case XML_NAME_INQ:
+			//問合せ情報
+		default:
+			//初期値を取得する。
+			$info = _GetInquiryInfo($id, $undeleteOnly);
+
+			if (_IsNull($info)) {
+				//取得できなかった場合、新規登録となる。→初期値を設定する。
+				$info['tbl_user']['usr_auth_id'] = USER_AUTH_NON;									//顧客テーブル.権限="権限無し"
+			} else {
+				//確認用項目にも値を設定する。
+				$info['tbl_user']['usr_e_mail_confirm'] = $info['tbl_user']['usr_e_mail'];			//顧客テーブル.E-Mail(確認)
+				$info['tbl_user']['usr_pass_confirm'] = $info['tbl_user']['usr_pass'];				//顧客テーブル.パスワード(確認)
+			}
+			break;
+	}
+
+	_Log("[_GetDefaultInfo] 結果 = '".print_r($info,true)."'");
+	_Log("[_GetDefaultInfo] end.");
+	return $info;
+}
+
+/**
+ * フォーム情報の更新・登録をする。
+ *
+ * @param	mixed   $info		フォーム情報
+ * @return	boolean	{true:成功/false:失敗}
+ * @access  public
+ * @since
+ */
+function _UpdateInfo(&$info) {
+	_Log("[_UpdateInfo] start.");
+
+	_Log("[_UpdateInfo] (param) フォーム情報 = '".print_r($info,true)."'");
+
+	$xmlName = $info['condition']['_xml_name_'];
+	$id = $info['condition']['_id_'];
+
+	_Log("[_UpdateInfo] XMLファイル名 = '".$xmlName."'");
+	_Log("[_UpdateInfo] ターゲットID = '".$id."'");
+
+	if (_IsNull($xmlName)) {
+		_Log("[_UpdateInfo] XmlName is null.");
+		_Log("[_UpdateInfo] end.");
+		return false;
+	}
+
+
+	$res = false;
+
+	switch ($xmlName) {
+		case XML_NAME_USER:
+			//ユーザー情報
+		case XML_NAME_USER_OEM:
+			//ユーザー情報(OEM・代理店制度用)
+		case XML_NAME_CANCEL:
+			//登録解除
+
+			_Log("[_UpdateInfo] {ユーザー情報} ユーザー情報の更新・登録をする。");
+
+
+			//ターゲットIDが設定されているか？
+			if (_IsNull($id)) {
+				//未設定→新規登録
+				_Log("[_UpdateInfo] {ユーザー情報} ターゲットID未設定→【新規登録】");
+
+				//プランIDが設定されているか？
+				if (!isset($info['update']['tbl_user']['usr_plan_id']) || _IsNull($info['update']['tbl_user']['usr_plan_id'])) {
+					//設定されていない場合、"通常プラン"を設定する。→通常のユーザー登録の場合(/regist/)
+					$info['update']['tbl_user']['usr_plan_id'] = MST_PLAN_ID_NORMAL;
+				}
+
+				//会計事務所の無料案内IDが設定されているか？
+				if (!isset($info['update']['tbl_user']['usr_account_free_guidance_id']) || _IsNull($info['update']['tbl_user']['usr_account_free_guidance_id'])) {
+					//設定されていない場合、"受けない"を設定する。→OEM・代理店制度のユーザー登録の場合(/regist_oem/)
+					$info['update']['tbl_user']['usr_account_free_guidance_id'] = MST_ACCOUNT_FREE_GUIDANCE_ID_NO;
+				}
+
+				$res = _CreateUserInfo($info['update']);
+				if ($res === false) {
+					_Log("[_UpdateInfo] {ユーザー情報} {ERROR} ユーザー情報の登録に失敗しました。_CreateUserInfo() ", 1);
+					_Log("[_UpdateInfo] {ユーザー情報} {ERROR} ユーザー情報 = '".print_r($info['update'],true)."'", 1);
+				} else {
+					_Log("[_UpdateInfo] {ユーザー情報} ターゲットID未設定→【新規登録】→【成功】");
+					//ターゲットIDを設定する。
+					$id = $res;
+					//DBから最新情報を取得する。
+					$info['update'] = _GetDefaultInfo($xmlName, $id, false);
+
+					$res = true;
+				}
+			} else {
+				//設定済→更新
+				_Log("[_UpdateInfo] {ユーザー情報} ターゲットID設定済→【更新】");
+				$res = _SaveUserInfo($info['update']);
+				if ($res === false) {
+					_Log("[_UpdateInfo] {ユーザー情報} {ERROR} ユーザー情報の更新に失敗しました。_SaveUserInfo() ", 1);
+					_Log("[_UpdateInfo] {ユーザー情報} {ERROR} ユーザー情報 = '".print_r($info['update'],true)."'", 1);
+				} else {
+					_Log("[_UpdateInfo] {ユーザー情報} ターゲットID設定済→【更新】→【成功】");
+					//DBから最新情報を取得する。
+					$info['update'] = _GetDefaultInfo($xmlName, $id, false);
+
+					$res = true;
+				}
+			}
+
+			break;
+
+		case XML_NAME_BUY:
+			//ご利用料金のお支払い情報
+
+			_Log("[_UpdateInfo] {ユーザー_状況情報} ユーザー_状況情報の更新・登録をする。");
+
+			$res = _CreateUserStatusInfo4BuyForm($info['update']);
+			if ($res === false) {
+				_Log("[_UpdateInfo] {ユーザー_状況情報} {ERROR} ユーザー_状況情報の登録に失敗しました。_CreateUserStatusInfo4BuyForm() ", 1);
+				_Log("[_UpdateInfo] {ユーザー_状況情報} {ERROR} ユーザー_状況情報 = '".print_r($info['update'],true)."'", 1);
+			} else {
+				$res = true;
+			}
+
+			break;
+
+		case XML_NAME_ARTICLE:
+			//定款認証情報
+		case XML_NAME_ARTICLE_LLC:
+			//定款認証情報(合同会社用)
+
+			_Log("[_UpdateInfo] {定款認証情報} 株式会社設立情報の更新・登録をする。");
+
+			//※ここにくるのは、会社情報有りの場合のはず！(入金チェックのためこれない。)
+
+			//会社IDを設定する。
+			$companyId = null;
+			if (isset($info['update']['tbl_company']['cmp_company_id']) && !_IsNull($info['update']['tbl_company']['cmp_company_id'])) {
+				$companyId = $info['update']['tbl_company']['cmp_company_id'];
+			}
+			$res = false;
+			if (!_IsNull($companyId)) {
+				//定款作成日を登録する。
+				$updInfo = array();
+				$updInfo['tbl_company']['cmp_company_id'] = $companyId;																	//会社ID
+				$updInfo['tbl_company']['cmp_article_create_year'] = $info['update']['tbl_article_date']['art_dat_create_year'];		//定款作成日(年)
+				$updInfo['tbl_company']['cmp_article_create_month'] = $info['update']['tbl_article_date']['art_dat_create_month'];		//定款作成日(月)
+				$updInfo['tbl_company']['cmp_article_create_day'] = $info['update']['tbl_article_date']['art_dat_create_day'];			//定款作成日(日)
+				$updInfo['tbl_company']['cmp_del_flag'] = $info['update']['tbl_company']['cmp_del_flag'];								//削除フラグ
+				$res = _CreateCompanyInfo($updInfo);
+				if ($res === false) {
+					_Log("[_UpdateInfo] {定款認証情報} →【失敗】");
+					_Log("[_UpdateInfo] {定款認証情報} {ERROR} 株式会社設立情報の登録に失敗しました。_CreateCompanyInfo() ", 1);
+					_Log("[_UpdateInfo] {定款認証情報} {ERROR} 株式会社設立情報 = '".print_r($updInfo,true)."'", 1);
+				} else {
+					_Log("[_UpdateInfo] {定款認証情報} →【成功】");
+					$res = true;
+				}
+			}
+
+			break;
+
+		case XML_NAME_CMP:
+			//株式会社設立情報
+		case XML_NAME_LLC:
+			//合同会社設立情報
+
+			_Log("[_UpdateInfo] {株式会社設立情報} 株式会社設立情報の更新・登録をする。");
+
+
+			//ターゲットIDが設定されているか？
+			if (_IsNull($id)) {
+				//未設定→新規登録
+				_Log("[_UpdateInfo] {株式会社設立情報} ターゲットID未設定→【新規登録】");
+			} else {
+				//設定済→更新
+				_Log("[_UpdateInfo] {株式会社設立情報} ターゲットID設定済→【更新】");
+
+				$info['update']['tbl_company']['cmp_company_id'] = $id;
+			}
+
+			$res = _CreateCompanyInfo($info['update']);
+			if ($res === false) {
+				_Log("[_UpdateInfo] {株式会社設立情報} →【失敗】");
+				_Log("[_UpdateInfo] {株式会社設立情報} {ERROR} 株式会社設立情報の登録に失敗しました。_CreateCompanyInfo() ", 1);
+				_Log("[_UpdateInfo] {株式会社設立情報} {ERROR} 株式会社設立情報 = '".print_r($info['update'],true)."'", 1);
+			} else {
+				_Log("[_UpdateInfo] {株式会社設立情報} →【成功】");
+				//ターゲットIDを設定する。
+				$id = $res;
+				//DBから最新情報を取得する。
+				$info['update'] = _GetDefaultInfo($xmlName, $id, false);
+
+				$res = true;
+			}
+
+			break;
+
+
+
+		///// ↑使用    ↓未使用
+
+		case XML_NAME_ITEM:
+			//商品情報
+
+			_Log("[_UpdateInfo] {商品情報} 商品情報の更新・登録をする。");
+
+			//ターゲットIDが設定されているか？
+			if (_IsNull($id)) {
+				//未設定→新規登録
+				_Log("[_UpdateInfo] {商品情報} ターゲットID未設定→【新規登録】");
+				$itemId = _CreateItemInfo($info['update']);
+				if ($itemId === false) {
+					_Log("[_UpdateInfo] {商品情報} {ERROR} 商品情報の登録に失敗しました。_CreateItemInfo() ", 1);
+					_Log("[_UpdateInfo] {商品情報} {ERROR} 商品情報 = '".print_r($info['update'],true)."'", 1);
+				} else {
+					_Log("[_UpdateInfo] {商品情報} ターゲットID未設定→【新規登録】→【成功】");
+					//ターゲットIDを設定する。
+					$id = $itemId;
+					//DBから最新情報を取得する。
+					$info['update'] = _GetDefaultInfo($xmlName, $id, false);
+				}
+			} else {
+				//設定済→更新
+				_Log("[_UpdateInfo] {商品情報} ターゲットID設定済→【更新】");
+				$itemId = _SaveItemInfo($info['update']);
+				if ($itemId === false) {
+					_Log("[_UpdateInfo] {商品情報} {ERROR} 商品情報の更新に失敗しました。_SaveItemInfo() ", 1);
+					_Log("[_UpdateInfo] {商品情報} {ERROR} 商品情報 = '".print_r($info['update'],true)."'", 1);
+				} else {
+					_Log("[_UpdateInfo] {商品情報} ターゲットID設定済→【更新】→【成功】");
+					//DBから最新情報を取得する。
+					$info['update'] = _GetDefaultInfo($xmlName, $id, false);
+				}
+			}
+
+
+			break;
+
+		case XML_NAME_BOTTLE_IMAGE:
+			//ボトル画像情報
+
+			_Log("[_UpdateInfo] {ボトル_画像情報} ボトル_画像情報の更新・登録をする。");
+
+			$res = _SaveBottleImageInfo($info['update']);
+			if ($res === false) {
+				_Log("[_UpdateInfo] {ボトル_画像情報} {ERROR} ボトル_画像情報の更新に失敗しました。_SaveItemInfo() ", 1);
+				_Log("[_UpdateInfo] {ボトル_画像情報} {ERROR} ボトル_画像情報 = '".print_r($info['update'],true)."'", 1);
+			} else {
+				_Log("[_UpdateInfo] {ボトル_画像情報} →【更新成功】");
+				//DBから最新情報を取得する。
+				$info['update'] = _GetDefaultInfo($xmlName, $id, true);//未削除データのみ
+			}
+
+			break;
+
+		case XML_NAME_DESIGN_IMAGE:
+			//彫刻パターン画像情報
+
+			_Log("[_UpdateInfo] {彫刻パターン情報} 彫刻パターン情報の更新・登録をする。");
+
+			$res = _SaveDesignInfo($info['update']);
+			if ($res === false) {
+				_Log("[_UpdateInfo] {彫刻パターン情報} {ERROR} 彫刻パターン情報の更新に失敗しました。_SaveDesignInfo() ", 1);
+				_Log("[_UpdateInfo] {彫刻パターン情報} {ERROR} 彫刻パターン情報 = '".print_r($info['update'],true)."'", 1);
+			} else {
+				_Log("[_UpdateInfo] {彫刻パターン情報} →【更新成功】");
+				//DBから最新情報を取得する。
+				$info['update'] = _GetDefaultInfo($xmlName, $id, true);//未削除データのみ
+			}
+
+			break;
+
+		case XML_NAME_CHARACTER_J_IMAGE:
+			//彫刻文字(和字)画像情報
+
+			_Log("[_UpdateInfo] {彫刻文字(和字)画像情報} 彫刻文字(和字)画像情報の更新・登録をする。");
+
+			$res = _SaveCharacterJInfo($info['update']);
+			if ($res === false) {
+				_Log("[_UpdateInfo] {彫刻文字(和字)画像情報} {ERROR} 彫刻文字(和字)画像情報の更新に失敗しました。_SaveCharacterJInfo() ", 1);
+				_Log("[_UpdateInfo] {彫刻文字(和字)画像情報} {ERROR} 彫刻文字(和字)画像情報 = '".print_r($info['update'],true)."'", 1);
+			} else {
+				_Log("[_UpdateInfo] {彫刻文字(和字)画像情報} →【更新成功】");
+				//DBから最新情報を取得する。
+				$info['update'] = _GetDefaultInfo($xmlName, $id, true);//未削除データのみ
+			}
+
+			break;
+
+		case XML_NAME_CHARACTER_E_IMAGE:
+			//彫刻文字(英字)画像情報
+
+			_Log("[_UpdateInfo] {彫刻文字(英字)画像情報} 彫刻文字(英字)画像情報の更新・登録をする。");
+
+			$res = _SaveCharacterEInfo($info['update']);
+			if ($res === false) {
+				_Log("[_UpdateInfo] {彫刻文字(英字)画像情報} {ERROR} 彫刻文字(英字)画像情報の更新に失敗しました。_SaveCharacterEInfo() ", 1);
+				_Log("[_UpdateInfo] {彫刻文字(英字)画像情報} {ERROR} 彫刻文字(英字)画像情報 = '".print_r($info['update'],true)."'", 1);
+			} else {
+				_Log("[_UpdateInfo] {彫刻文字(英字)画像情報} →【更新成功】");
+				//DBから最新情報を取得する。
+				$info['update'] = _GetDefaultInfo($xmlName, $id, true);//未削除データのみ
+			}
+
+			break;
+
+		case XML_NAME_INQ:
+			//問合せ情報
+		case XML_NAME_INQ_FROM_MAIL:
+			//問合せ情報(メール本文から登録用)
+
+			_Log("[_UpdateInfo] {問合せ情報} 問合せ情報の更新・登録をする。");
+
+
+			$bufFromMail = null;
+			if ($xmlName == XML_NAME_INQ_FROM_MAIL) {
+				$bufFromMail = $info['update']['from_mail'];
+			}
+
+			//ターゲットIDが設定されているか？
+			if (_IsNull($id)) {
+				//未設定→新規登録
+				_Log("[_UpdateInfo] {問合せ情報} ターゲットID未設定→【新規登録】");
+				$inquiryId = _CreateInquiryInfo($info['update']);
+				if ($inquiryId === false) {
+			    	_Log("[_UpdateInfo] {問合せ情報} {ERROR} 問合せ情報の登録に失敗しました。_CreateInquiryInfo() ", 1);
+			    	_Log("[_UpdateInfo] {問合せ情報} {ERROR} 問合せ情報 = '".print_r($info['update'],true)."'", 1);
+				} else {
+					_Log("[_UpdateInfo] {問合せ情報} ターゲットID未設定→【新規登録】→【成功】");
+					//ターゲットIDを設定する。
+					$id = $inquiryId;
+					//DBから最新情報を取得する。
+					$info['update'] = _GetDefaultInfo($xmlName, $id, false);
+				}
+			} else {
+				//設定済→更新
+				_Log("[_UpdateInfo] {問合せ情報} ターゲットID設定済→【更新】");
+				$inquiryId = _SaveInquiryInfo($info['update']);
+				if ($inquiryId === false) {
+			    	_Log("[_UpdateInfo] {問合せ情報} {ERROR} 問合せ情報の更新に失敗しました。_SaveInquiryInfo() ", 1);
+			    	_Log("[_UpdateInfo] {問合せ情報} {ERROR} 問合せ情報 = '".print_r($info['update'],true)."'", 1);
+				} else {
+					_Log("[_UpdateInfo] {問合せ情報} ターゲットID設定済→【更新】→【成功】");
+					//DBから最新情報を取得する。
+					$info['update'] = _GetDefaultInfo($xmlName, $id, false);
+				}
+			}
+
+			if ($xmlName == XML_NAME_INQ_FROM_MAIL) {
+				$info['update']['from_mail'] = $bufFromMail;
+			}
+
+
+			break;
+	}
+
+	$info['condition']['_id_'] = $id;
+	_Log("[_UpdateInfo] 結果 = '".$res."'");
+	_Log("[_UpdateInfo] end.");
+
+	return $res;
+}
+
+
+
+
+
+//glassart-gen.comサイト用 ------------------------------------------------ start
+///**
+// * 	アップロードされた画像を表示する。
+// *
+// * @param	mixed	$info		フォーム情報
+// * @param	string	$fileName	画像ファイル名
+// * @return	string	画像タグ文字列
+// * @access  public
+// * @since
+// */
+//function _GetItemImage($info, $fileName) {
+//	_Log("[_GetItemImage] start.");
+//	_Log("[_GetItemImage] (param) フォーム情報 = '".print_r($info,true)."'");
+//	_Log("[_GetItemImage] (param) 画像ファイル名 = '".$fileName."'");
+//
+//	$res = null;
+//
+//	if (!_IsNull($fileName)) {
+//		//一時保存フォルダ名を取得する。
+//		$tempDirPath = null;
+//		$tempDirName = null;
+//		if (isset($info['condition']['_file_upload_temp_dir_']) && !_IsNull($info['condition']['_file_upload_temp_dir_'])) {
+//			$tempDirName = $info['condition']['_file_upload_temp_dir_'];
+//			$tempDirPath = FILE_DIR_ITEM_IMG_TMP.'/'.$tempDirName.'/';
+//		}
+//
+//		//本番用フォルダ名を取得する。
+//		$showDirPath = null;
+//		$showDirName = null;
+//		if (isset($info['condition']['_id_']) && !_IsNull($info['condition']['_id_'])) {
+//			$showDirName = sprintf(FILE_DIR_NAME_ITEM_IMG, $info['condition']['_id_']);
+//			$showDirPath = FILE_DIR_ITEM_IMG.'/'.$showDirName.'/';
+//		}
+//
+//
+//
+//		_Log("[_GetItemImage] 基本一時保存フォルダ = '".FILE_DIR_ITEM_IMG_TMP."'");
+//		_Log("[_GetItemImage] 基本本番用フォルダ = '".FILE_DIR_ITEM_IMG."'");
+//
+//		_Log("[_GetItemImage] 一時保存フォルダ名 = '".$info['condition']['_file_upload_temp_dir_']."'");
+//		_Log("[_GetItemImage] 本番用フォルダ名 = '".$info['condition']['_id_']."'");
+//
+//
+//		_Log("[_GetItemImage] 一時保存フォルダ = '".$tempDirPath."'");
+//		_Log("[_GetItemImage] 本番用フォルダ = '".$showDirPath."'");
+//
+//
+//		$url = null;
+//		$path = null;
+//		$dir = null;
+//		if (_IsNull($tempDirPath)) {
+//			_Log("[_GetItemImage] 一時保存Dir無");
+//			if (_IsNull($showDirPath)) {
+//				//本番用フォルダが存在しない場合
+//				_Log("[_GetItemImage] 一時保存Dir無→本番Dir無→END");
+//			} else {
+//				_Log("[_GetItemImage] 一時保存Dir無→本番Dir有");
+//				if (is_file($showDirPath.$fileName)) {
+//					_Log("[_GetItemImage] 一時保存Dir無→本番Dir有→IMG有→OK");
+//					$url = FILE_URL_ITEM_IMG;
+//					$path = $showDirPath;
+//					$dir = $showDirName;
+//				} else {
+//					_Log("[_GetItemImage] 一時保存Dir無→本番Dir有→IMG無→END");
+//				}
+//			}
+//		} else {
+//			_Log("[_GetItemImage] 一時保存Dir有");
+//			if (is_file($tempDirPath.$fileName)) {
+//				_Log("[_GetItemImage] 一時保存Dir有→IMG有→OK");
+//				$url = FILE_URL_ITEM_IMG_TMP;
+//				$path = $tempDirPath;
+//				$dir = $tempDirName;
+//			} else {
+//				_Log("[_GetItemImage] 一時保存Dir有→IMG無");
+//				if (_IsNull($showDirPath)) {
+//					_Log("[_GetItemImage] 一時保存Dir有→IMG無→本番Dir無→END");
+//				} else {
+//					_Log("[_GetItemImage] 一時保存Dir有→IMG無→本番Dir有");
+//					if (is_file($showDirPath.$fileName)) {
+//						_Log("[_GetItemImage] 一時保存Dir有→IMG無→本番Dir有→IMG有→OK");
+//						$url = FILE_URL_ITEM_IMG;
+//						$path = $showDirPath;
+//						$dir = $showDirName;
+//					} else {
+//						_Log("[_GetItemImage] 一時保存Dir有→IMG無→本番Dir有→IMG無→END");
+//					}
+//				}
+//			}
+//		}
+//
+//
+//		if (!_IsNull($url)) {
+//			//
+//			//画像サイズを取得する。
+////			list($orgWidth, $orgHeight, $orgImgType, $attr) = getimagesize($path.$fileName);
+//			$imagesize = getimagesize($path.$fileName);
+//
+//			_Log("[_GetItemImage] 画像情報 = '".print_r($imagesize,true)."'");
+//
+//			$attr = $imagesize[3];
+//
+//			$reSizeFlag = false;
+//			if (!_IsNull(FILE_ITEM_IMG_PX_SIZE_4_ADMIN)) {
+//				//縦・横の幅が100px以上の場合、縮小する。
+//				if ($imagesize[0] > FILE_ITEM_IMG_PX_SIZE_4_ADMIN) $reSizeFlag = true;
+//				if ($imagesize[1] > FILE_ITEM_IMG_PX_SIZE_4_ADMIN) $reSizeFlag = true;
+//			}
+//
+//			if ($reSizeFlag) {
+//				//画像サイズを縮小する。
+//				$listNewSize = _ImageResize($imagesize[0], $imagesize[1], FILE_ITEM_IMG_PX_SIZE_4_ADMIN);
+//				//画像サイズの設定をする。
+//				$attr = $listNewSize['attr'];
+//			}
+//
+//
+//			$res .= "<img src=\"".$url."/".$dir."/".$fileName."\" ".$attr." alt=\"商品画像\" />";
+//		}
+//
+//	}
+//
+//	_Log("[_GetItemImage] 結果 = '".$res."'");
+//	_Log("[_GetItemImage] end.");
+//
+//	return $res;
+//}
+//
+//
+///**
+// * 	画像アップロードをする。
+// *
+// * @param	mixed	$info	フォーム情報
+// * @param	mixed	$file	アップロード情報
+// * @return	string	エラーメッセージ
+// * @access  public
+// * @since
+// */
+//function _UploadItemImage(&$info, $file) {
+//	_Log("[_UploadItemImage] start.");
+//	_Log("[_UploadItemImage] (param) フォーム情報 = '".print_r($info,true)."'");
+//	_Log("[_UploadItemImage] (param) アップロード情報(\$_FILES) = '".print_r($file,true)."'");
+//
+//
+//	$message = null;
+//
+//	if (isset($file['file_update'])) {
+//
+//		//一時保存フォルダ名を作成する。
+//		$tempDirName = date(FILE_DIR_NAME_ITEM_IMG_TMP);
+//		if (isset($info['condition']['_file_upload_temp_dir_']) && !_IsNull($info['condition']['_file_upload_temp_dir_'])) {
+//			//一時保存フォルダを作成済みの場合、同じフォルダにアップする。
+//			$tempDirName = $info['condition']['_file_upload_temp_dir_'];
+//		}
+//
+//		$imgNo = 0;
+//		foreach ($file['file_update']['error']['tbl_item_image'] as $key => $fileError) {
+//			$imgNo++;
+//
+//			$showName = "画像ファイル [".$imgNo."] ";
+//			$errNo = $fileError['itm_img_file_name'];
+//
+//			_Log("[_UploadItemImage] ".$imgNo."つ目*******************************************");
+//			_Log("[_UploadItemImage] エラーNo = '".$errNo."'");
+//
+//			//アップロードのエラーチェック
+//			switch ($errNo) {
+//				case UPLOAD_ERR_OK:
+//					//値: 0; エラーはなく、ファイルアップロードは成功しています。
+//
+//					_Log("[_UploadItemImage] アップロードは成功");
+//
+//					//クライアントマシンの元のファイル名を取得する。
+//					$fileName = $file['file_update']['name']['tbl_item_image'][$key]['itm_img_file_name'];
+//					//テンポラリファイル名を取得する。
+//					$fileTempName = $file['file_update']['tmp_name']['tbl_item_image'][$key]['itm_img_file_name'];
+//
+//					_Log("[_UploadItemImage] クライアントマシンの元のファイル名 = '".$fileName."'");
+//					_Log("[_UploadItemImage] テンポラリファイル名 = '".$fileTempName."'");
+//
+//					//画像の情報を取得する。
+//					$imagesize = getimagesize($fileTempName);
+//					_Log("[_UploadItemImage] 画像情報(getimagesize) = '".print_r($imagesize,true)."'");
+//
+//					//画像ファイルかチェックする。
+//					//拡張子も設定する。
+//					$orgImgType = $imagesize[2];
+//					$extension = null;
+//					switch ($orgImgType) {
+//					case IMAGETYPE_GIF:
+//						$extension = "gif";
+//						break;
+//					case IMAGETYPE_JPEG:
+//						$extension = "jpg";
+//						break;
+//					case IMAGETYPE_PNG:
+//						$extension = "png";
+//						break;
+//					case IMAGETYPE_BMP:
+//						$extension = "bmp";
+//						break;
+//					default:
+//						$message .= $showName."は画像ファイルではありません。(jpg,gif,png,bmp)\n";
+//						_Log("[_UploadItemImage] 画像ファイルではない！");
+//						continue 2;
+//						break;
+//					}
+//
+//					//保存用のファイル名を作成する。
+//					$sysFileName = sprintf('%03d', $imgNo).".".$extension;
+//
+//					_Log("[_UploadItemImage] 新ファイル名 = '".$sysFileName."'");
+//					_Log("[_UploadItemImage] 拡張子 = '".$extension."'");
+////
+//
+//					//一時保存フォルダを作成する。
+//					$tempDir = FILE_DIR_ITEM_IMG_TMP.'/'.$tempDirName.'/';
+//
+//					_Log("[_UploadItemImage] 一時保存フォルダ = '".$tempDir."'");
+//
+//					if (!is_dir($tempDir)) {
+//						_Log("[_UploadItemImage] 一時保存フォルダ無し→作成する。");
+//						mkdir($tempDir);
+//						chmod($tempDir, 0777);//属性の前には0をつける。→777にしないとFTPから削除できなくなるので…
+//
+//
+//						$info['condition']['_file_upload_temp_dir_'] = $tempDirName;
+//
+//					} else {
+//						_Log("[_UploadItemImage] 一時保存フォルダ有り→作成しない。");
+//					}
+//
+//					$tempFile = $tempDir.$sysFileName;
+//
+//					//一時保存フォルダに移動する。
+//					if (move_uploaded_file($fileTempName, $tempFile)) {
+//
+//						$orgWidth = $imagesize[0];
+//						$orgHeight = $imagesize[1];
+//
+//						$resizeFlag = false;
+//						switch ($imgNo) {
+//							case 1:
+//								//1つ目の画像は、サムネイル用はに使用する。200px×200pxに縮小する。
+//								$newWidth = FILE_ITEM_IMG_PX_SIZE_4_THUMBNAIL;
+//								$newHeight = FILE_ITEM_IMG_PX_SIZE_4_THUMBNAIL;
+//
+//								$resizeFlag = true;
+//
+//								_Log("[_UploadItemImage] 1つ目の画像は、サムネイル用に使用する。200px×200pxに縮小する。");
+//								break;
+//							default:
+//								_Log("[_UploadItemImage] 2つ目以降の画像は、縮小しない。");
+//								break;
+//						}
+//
+//						if ($resizeFlag) {
+//							switch ($orgImgType) {
+//							case IMAGETYPE_GIF:
+//								$im1 = @imagecreatefromgif($tempFile); //元画像の読み込み
+//								$im2 = @imagecreatetruecolor($newWidth, $newHeight); //縮小画像の作成
+//								imagecopyresampled($im2,$im1, 0, 0, 0, 0, $newWidth, $newHeight, $orgWidth, $orgHeight); //コピー
+//								imagegif($im2, $tempFile); //ディスクに出力
+//								break;
+//							case IMAGETYPE_JPEG:
+//								$im1 = @imagecreatefromjpeg($tempFile); //元画像の読み込み
+//								$im2 = @imagecreatetruecolor($newWidth, $newHeight); //縮小画像の作成
+//								imagecopyresampled($im2,$im1, 0, 0, 0, 0, $newWidth, $newHeight, $orgWidth, $orgHeight); //コピー
+//								imagejpeg($im2, $tempFile); //ディスクに出力
+//								break;
+//							case IMAGETYPE_PNG:
+//								$im1 = @imagecreatefrompng($tempFile); //元画像の読み込み
+//								$im2 = @imagecreatetruecolor($newWidth, $newHeight); //縮小画像の作成
+//								imagecopyresampled($im2,$im1, 0, 0, 0, 0, $newWidth, $newHeight, $orgWidth, $orgHeight); //コピー
+//								imagepng($im2, $tempFile); //ディスクに出力
+//								break;
+//							case IMAGETYPE_BMP:
+////								$im1 = @imagecreatefromwbmp($tempFile); //元画像の読み込み
+////								$im2 = @imagecreatetruecolor($newWidth, $newHeight); //縮小画像の作成
+////								imagecopyresampled($im2,$im1, 0, 0, 0, 0, $newWidth, $newHeight, $orgWidth, $orgHeight); //コピー
+////								imagewbmp($im2, $tempFile); //ディスクに出力
+//								break;
+//							default:
+//								break;
+//							}
+//						}
+//
+//						//アップロードしたファイル名を保存する。
+//						$info['update']['tbl_item_image'][$key]['itm_img_file_name'] = $sysFileName;
+//
+//					} else {
+//						$message .= $showName."のファイルアップロードに失敗しました。\n";
+//					}
+//
+//					break;
+//				case UPLOAD_ERR_INI_SIZE:
+//					//値: 1; アップロードされたファイルは、php.ini の upload_max_filesize ディレクティブの値を超えています。
+//					$message .= $showName."のファイルアップロードに失敗しました。ファイルサイズが大きすぎます。サーバがアップロード可能なサイズ(upload_max_filesize=".ini_get ('upload_max_filesize')."バイト)を超えています。\n";
+//					break;
+//				case UPLOAD_ERR_FORM_SIZE:
+//					//値: 2; アップロードされたファイルは、HTML フォームで指定された MAX_FILE_SIZE を超えています。
+//					$message .= $showName."のファイルアップロードに失敗しました。ファイルサイズが大きすぎます。サーバがアップロード可能なサイズ(MAX_FILE_SIZE=".$_POST['MAX_FILE_SIZE']."バイト)を超えています。\n";
+//					break;
+//				case UPLOAD_ERR_PARTIAL:
+//					//値: 3; アップロードされたファイルは一部のみしかアップロードされていません。
+//					$message .= $showName."のファイルアップロードに失敗しました。\n";
+//					break;
+//				case UPLOAD_ERR_NO_FILE:
+//					//値: 4; ファイルはアップロードされませんでした。
+//					break;
+//				case UPLOAD_ERR_NO_TMP_DIR:
+//					//値: 6; テンポラリフォルダがありません。PHP 4.3.10 と PHP 5.0.3 で導入されました。
+//					$message .= $showName."のファイルアップロードに失敗しました。\n";
+//					break;
+//				case UPLOAD_ERR_CANT_WRITE:
+//					//値: 7; ディスクへの書き込みに失敗しました。PHP 5.1.0 で導入されました。
+//					$message .= $showName."のファイルアップロードに失敗しました。\n";
+//					break;
+//			}
+//
+//		}
+//
+//	}
+//
+//	_Log("[_UploadItemImage] end.");
+//
+//	return $message;
+//}
+
+
+
+///**
+// * 画像ファイルを古いものから新しいものに更新する。
+// * (画像ファイルを一時保存フォルダから本番用フォルダに移動する。)
+// *
+// * @param	mixed	$oldImageList	古い画像情報
+// * @param	string	$oldDir			古い画像があるフォルダ
+// * @param	mixed	$newImageList	新しい画像情報
+// * @param	string	$newDir			新しい画像があるフォルダ
+// * @return	boolean	{true:成功/false:失敗}
+// * @access  public
+// * @since
+// */
+//function _UpdateItemImage($oldImageList, $oldDir, $newImageList, $newDir) {
+//	_Log("[_UpdateItemImage] start.");
+//	_Log("[_UpdateItemImage] (param) 古い画像情報 = '".print_r($oldImageList,true)."'");
+//	_Log("[_UpdateItemImage] (param) 古い画像があるフォルダ = '".$oldDir."'");
+//	_Log("[_UpdateItemImage] (param) 新しい画像情報 = '".print_r($newImageList,true)."'");
+//	_Log("[_UpdateItemImage] (param) 新しい画像があるフォルダ = '".$newDir."'");
+//
+//	$oldDir .= '/';
+//	$newDir .= '/';
+//
+//	//画像情報の詰め替えをする。
+//	$oldList = array();
+//	if (!_IsNull($oldImageList)) {
+//		foreach ($oldImageList as $key => $imgInfo) {
+//			$oldList[$imgInfo['itm_img_no']] = $imgInfo;
+//		}
+//	}
+//	$newList = array();
+//	if (!_IsNull($newImageList)) {
+//		foreach ($newImageList as $key => $imgInfo) {
+//			$newList[$imgInfo['itm_img_no']] = $imgInfo;
+//		}
+//	}
+//
+//	_Log("[_UpdateItemImage] {詰め替え後} 古い画像情報 = '".print_r($oldList,true)."'");
+//	_Log("[_UpdateItemImage] {詰め替え後} 新しい画像情報 = '".print_r($newList,true)."'");
+//
+//	//件数を取得する。
+//	$oldCount = count($oldList);
+//	$newCount = count($newList);
+//	$maxCount = (($oldCount < $newCount)?$newCount:$oldCount);
+//
+//	_Log("[_UpdateItemImage] 古い画像情報の件数 = '".$oldCount."'");
+//	_Log("[_UpdateItemImage] 新しい画像情報の件数 = '".$newCount."'");
+//	_Log("[_UpdateItemImage] 最大件数 = '".$maxCount."'");
+//
+//	//本番用フォルダが存在しない場合、新規作成する。
+//	if (!is_dir($oldDir)) {
+//		_Log("[_UploadItemImage] 本番用フォルダが存在しない→新規作成する。");
+//		mkdir($oldDir);
+//		chmod($oldDir, 0777);//属性の前には0をつける。→777にしないとFTPから削除できなくなるので…
+//	}
+//
+//	//画像を移動する。
+//	for ($i = 1; $i <= $maxCount; $i++) {
+////		_Log("[_UpdateItemImage] ".$i."件目 ********************");
+////		//新しく画像がアップされたか？
+////		if (isset($newList[$i]['itm_img_file_name']) && !_IsNull($newList[$i]['itm_img_file_name']) && is_file($newDir.$newList[$i]['itm_img_file_name'])) {
+////			_Log("[_UpdateItemImage] 新しい画像【有】");
+////			//古い画像は存在するか？
+////			if (isset($oldList[$i]['itm_img_file_name']) && !_IsNull($oldList[$i]['itm_img_file_name']) && is_file($oldDir.$oldList[$i]['itm_img_file_name'])) {
+////				_Log("[_UpdateItemImage] 新しい画像【有】→古い画像【有】");
+////				$del = $oldDir.$oldList[$i]['itm_img_file_name'];
+////				_Log("[_UpdateItemImage] {古い画像を削除する} '".$del."'");
+////				unlink($del);
+////			} else {
+////				_Log("[_UpdateItemImage] 新しい画像【有】→古い画像【無】");
+////			}
+////			$old = $newDir.$newList[$i]['itm_img_file_name'];
+////			$new = $oldDir.$newList[$i]['itm_img_file_name'];
+////			_Log("[_UpdateItemImage] {新しい画像を移動する} '".$old."' ⇒ '".$new."'");
+////			rename($old, $new);
+////		} else {
+////			_Log("[_UpdateItemImage] 新しい画像【無】");
+////			//古い画像は存在するか？
+////			if (isset($oldList[$i]['itm_img_file_name']) && !_IsNull($oldList[$i]['itm_img_file_name']) && is_file($oldDir.$oldList[$i]['itm_img_file_name'])) {
+////				_Log("[_UpdateItemImage] 新しい画像【無】→古い画像【有】");
+////				$del = $oldDir.$oldList[$i]['itm_img_file_name'];
+////				_Log("[_UpdateItemImage] {古い画像を削除する} '".$del."'");
+////				unlink($del);
+////			} else {
+////				_Log("[_UpdateItemImage] 新しい画像【無】→古い画像【無】");
+////			}
+////			_Log("[_UpdateItemImage] {画像は無し}");
+////		}
+//
+//
+//		_Log("[_UpdateItemImage] ".$i."件目 ********************");
+//		//新しい画像情報は、画像有りか？
+//		if (isset($newList[$i]['itm_img_file_name']) && !_IsNull($newList[$i]['itm_img_file_name'])) {
+//			_Log("[_UpdateItemImage] 新しい画像【有】");
+//			//新しい画像はどこにあるか？
+//			if (is_file($newDir.$newList[$i]['itm_img_file_name'])) {
+//				_Log("[_UpdateItemImage] 新しい画像【有】→新フォルダ(一時保存用)【有】");
+//				//古い画像情報は、画像有りか？
+//				if (isset($oldList[$i]['itm_img_file_name']) && !_IsNull($oldList[$i]['itm_img_file_name'])) {
+//					_Log("[_UpdateItemImage] 新しい画像【有】→新フォルダ(一時保存用)【有】→古い画像【有】");
+//					//古い画像は存在するか？
+//					if (is_file($oldDir.$oldList[$i]['itm_img_file_name'])) {
+//						_Log("[_UpdateItemImage] 新しい画像【有】→新フォルダ(一時保存用)【有】→古い画像【有】→古フォルダ(本番保存用)【有】");
+//						$del = $oldDir.$oldList[$i]['itm_img_file_name'];
+//						_Log("[_UpdateItemImage] {古い画像を削除する} '".$del."'");
+//						unlink($del);
+//					} else {
+//						_Log("[_UpdateItemImage] 新しい画像【有】→新フォルダ(一時保存用)【有】→古い画像【有】→古フォルダ(本番保存用)【無】(無いはずがない。手動削除か？)");
+//					}
+//				} else {
+//					_Log("[_UpdateItemImage] 新しい画像【有】→新フォルダ(一時保存用)【有】→古い画像【無】");
+//				}
+//				$old = $newDir.$newList[$i]['itm_img_file_name'];
+//				$new = $oldDir.$newList[$i]['itm_img_file_name'];
+//				_Log("[_UpdateItemImage] {新しい画像を移動する} '".$old."' ⇒ '".$new."'");
+//				rename($old, $new);
+//			} else {
+//				_Log("[_UpdateItemImage] 新しい画像【有】→新フォルダ(一時保存用)【無】");
+//				//古フォルダ(本番保存用)にあるか？
+//				if (is_file($oldDir.$newList[$i]['itm_img_file_name'])) {
+//					_Log("[_UpdateItemImage] 新しい画像【有】→新フォルダ(一時保存用)【無】→古フォルダ(本番保存用)【有】(現状維持。画像の変更なし！)");
+//				} else {
+//					_Log("[_UpdateItemImage] 新しい画像【有】→新フォルダ(一時保存用)【無】→古フォルダ(本番保存用)【無】(無いはずがない。手動削除か？)");
+//				}
+//			}
+//		} else {
+//			_Log("[_UpdateItemImage] 新しい画像【無】");
+//
+//			//古い画像情報は、画像有りか？
+//			if (isset($oldList[$i]['itm_img_file_name']) && !_IsNull($oldList[$i]['itm_img_file_name'])) {
+//				_Log("[_UpdateItemImage] 新しい画像【無】→古い画像【有】");
+//				//古い画像は存在するか？
+//				if (is_file($oldDir.$oldList[$i]['itm_img_file_name'])) {
+//					_Log("[_UpdateItemImage] 新しい画像【無】→古い画像【有】→古フォルダ(本番保存用)【有】");
+//					$del = $oldDir.$oldList[$i]['itm_img_file_name'];
+//					_Log("[_UpdateItemImage] {古い画像を削除する} '".$del."'");
+//					unlink($del);
+//				} else {
+//					_Log("[_UpdateItemImage] 新しい画像【無】→古い画像【有】→古フォルダ(本番保存用)【無】(無いはずがない。手動削除か？)");
+//				}
+//			} else {
+//				_Log("[_UpdateItemImage] 新しい画像【無】→古い画像【無】(現状維持。画像の追加なし！)");
+//			}
+//		}
+//
+//
+// 	}
+//
+//
+// 	_Log("[_UpdateItemImage] {新しい画像があったフォルダとフォルダ内に残ってるゴミファイルを削除する。------------------start}");
+// 	//新しい画像があるフォルダに残ってるゴミファイルを削除する。
+//	$dh = opendir($newDir);
+//	while (false !== ($file = readdir($dh))) {
+//		$buf = $newDir.$file;
+//		if (is_file($buf)) {
+//			_Log("[_UpdateItemImage] {ゴミファイルを削除する} '".$buf."'");
+//			unlink($buf);
+//		}
+//	}
+//	closedir($dh);
+//
+//	_Log("[_UpdateItemImage] {新しい画像があったフォルダを削除する} '".$newDir."'");
+//	rmdir($newDir);
+// 	_Log("[_UpdateItemImage] {新しい画像があったフォルダとフォルダ内に残ってるゴミファイルを削除する。------------------end}");
+//
+//	_Log("[_UpdateItemImage] end.");
+//
+//	return true;
+//}
+//
+//
+///**
+// * アイテム画像ファイル用の一時保存フォルダを掃除する。
+// *
+// * @param	string	$dir		一時保存フォルダ
+// * @param	int		$cleanDay	何日前のフォルダを削除するかの日数
+// * @return	boolean	{true:成功/false:失敗}
+// * @access  public
+// * @since
+// */
+//function _CleanTempItemImage($dir, $cleanDay) {
+//	_Log("[_CleanTempItemImage] start.");
+//	_Log("[_CleanTempItemImage] (param) 一時保存フォルダ = '".$dir."'");
+//	_Log("[_CleanTempItemImage] (param) 何日前のフォルダを削除するかの日数 = '".$cleanDay."'");
+//
+//	$dir .= '/';
+//
+//	$dh = opendir($dir);
+//	while (false !== ($file = readdir($dh))) {
+//		if ($file == '..') continue;
+//		if ($file == '.') continue;
+//
+//		$buf = $dir.$file;
+//
+//		_Log("[_CleanTempItemImage] file = '".$buf."'");
+//		if (is_dir($buf)) {
+//
+//			//ファイルに関する情報を取得する
+//			$stat = stat($buf);
+//			_Log("[_CleanTempItemImage] mtime (最終修正時間(Unixタイムスタンプ)) = '".date ("Y/m/d H:i:s.", $stat['mtime'])."'");
+//			$cleanTime = mktime(0, 0, 0, date('n'), date('j') - $cleanDay, date('Y'));
+//			_Log("[_CleanTempItemImage] cleanTime (掃除時間) = '".date ("Y/m/d H:i:s.", $cleanTime)."'");
+//			if ($stat['mtime'] < $cleanTime) {
+//				_Log("[_CleanTempItemImage] 古いので削除する。");
+//				//下位のフォルダ、ファイルを再帰で削除する。
+//				_CleanTempItemImage($buf, $cleanDay);
+//				//下位が削除できたら、自フォルダを削除する。
+//				rmdir($buf);
+//				_Log("[_CleanTempItemImage] {ゴミフォルダを削除する} '".$buf."'");
+//			}
+//
+//		} elseif (is_file($buf)) {
+//			_Log("[_CleanTempItemImage] {ゴミファイルを削除する} '".$buf."'");
+//			unlink($buf);
+//		}
+//	}
+//	closedir($dh);
+//
+//	_Log("[_CleanTempItemImage] end.");
+//}
+//
+
+
+
+
+/**
+ * 	アップロードされた画像を表示する。
+ *
+ * @param	mixed	$info				フォーム情報
+ * @param	string	$fileName			画像ファイル名
+ * @param	string	$showDirBase		基本本番用保存フォルダのフルパス
+ * @param	string	$showUrlBase		基本本番用保存フォルダのURL
+ * @param	string	$tempDirBase		基本一時保存フォルダのフルパス
+ * @param	string	$tempUrlBase		基本一時保存フォルダのURL
+ * @param	string	$fileDirNameFormat	本番用フォルダのフォルダ名フォーマット(sprintf()のフォーマット)
+ * @param	int		$showSize			表示するときの画像の長辺の最大サイズ
+ * @return	string	画像タグ文字列
+ * @access  public
+ * @since
+ */
+function _GetImage($info, $fileName, $showDirBase, $showUrlBase, $tempDirBase, $tempUrlBase, $fileDirNameFormat = null, $showSize = FILE_IMG_PX_SIZE_4_ADMIN) {
+	_Log("[_GetImage] start.");
+	_Log("[_GetImage] (param) フォーム情報 = '".print_r($info,true)."'");
+	_Log("[_GetImage] (param) 画像ファイル名 = '".$fileName."'");
+	_Log("[_GetImage] (param) 基本本番用保存フォルダのフルパス = '".$showDirBase."'");
+	_Log("[_GetImage] (param) 基本本番用保存フォルダのURL = '".$showUrlBase."'");
+	_Log("[_GetImage] (param) 基本一時保存フォルダのフルパス = '".$tempDirBase."'");
+	_Log("[_GetImage] (param) 基本一時保存フォルダのURL = '".$tempUrlBase."'");
+	_Log("[_GetImage] (param) 本番用フォルダのフォルダ名フォーマット(sprintf()のフォーマット) = '".$fileDirNameFormat."'");
+
+
+	$res = null;
+
+	if (!_IsNull($fileName)) {
+		//一時保存フォルダ名を取得する。
+		$tempDirPath = null;
+		$tempDirName = null;
+		if (isset($info['condition']['_file_upload_temp_dir_']) && !_IsNull($info['condition']['_file_upload_temp_dir_'])) {
+			$tempDirName = $info['condition']['_file_upload_temp_dir_'];
+			$tempDirPath = $tempDirBase.'/'.$tempDirName.'/';
+		}
+
+		//本番用フォルダ名を取得する。
+		$showDirPath = null;
+		$showDirName = null;
+		if (_IsNull($fileDirNameFormat)) {
+			$showDirPath = $showDirBase.'/';
+		} else {
+			if (isset($info['condition']['_id_']) && !_IsNull($info['condition']['_id_'])) {
+				$showDirName = sprintf($fileDirNameFormat, $info['condition']['_id_']);
+				$showDirPath = $showDirBase.'/'.$showDirName.'/';
+			}
+		}
+
+
+
+		_Log("[_GetImage] 基本一時保存フォルダ = '".$tempDirBase."'");
+		_Log("[_GetImage] 基本本番用フォルダ = '".$showDirBase."'");
+
+		_Log("[_GetImage] 一時保存フォルダ名 = '".$info['condition']['_file_upload_temp_dir_']."'");
+		_Log("[_GetImage] 本番用フォルダ名 = '".$info['condition']['_id_']."'");
+
+
+		_Log("[_GetImage] 一時保存フォルダ = '".$tempDirPath."'");
+		_Log("[_GetImage] 本番用フォルダ = '".$showDirPath."'");
+
+
+		$url = null;
+		$path = null;
+		$dir = null;
+		if (_IsNull($tempDirPath)) {
+			_Log("[_GetImage] 一時保存Dir無");
+			if (_IsNull($showDirPath)) {
+				//本番用フォルダが存在しない場合
+				_Log("[_GetImage] 一時保存Dir無→本番Dir無→END");
+			} else {
+				_Log("[_GetImage] 一時保存Dir無→本番Dir有");
+				if (is_file($showDirPath.$fileName)) {
+					_Log("[_GetImage] 一時保存Dir無→本番Dir有→IMG有→OK");
+					$url = $showUrlBase;
+					$path = $showDirPath;
+					$dir = $showDirName;
+				} else {
+					_Log("[_GetImage] 一時保存Dir無→本番Dir有→IMG無→END");
+				}
+			}
+		} else {
+			_Log("[_GetImage] 一時保存Dir有");
+			if (is_file($tempDirPath.$fileName)) {
+				_Log("[_GetImage] 一時保存Dir有→IMG有→OK");
+				$url = $tempUrlBase;
+				$path = $tempDirPath;
+				$dir = $tempDirName;
+			} else {
+				_Log("[_GetImage] 一時保存Dir有→IMG無");
+				if (_IsNull($showDirPath)) {
+					_Log("[_GetImage] 一時保存Dir有→IMG無→本番Dir無→END");
+				} else {
+					_Log("[_GetImage] 一時保存Dir有→IMG無→本番Dir有");
+					if (is_file($showDirPath.$fileName)) {
+						_Log("[_GetImage] 一時保存Dir有→IMG無→本番Dir有→IMG有→OK");
+						$url = $showUrlBase;
+						$path = $showDirPath;
+						$dir = $showDirName;
+					} else {
+						_Log("[_GetImage] 一時保存Dir有→IMG無→本番Dir有→IMG無→END");
+					}
+				}
+			}
+		}
+
+
+		if (!_IsNull($url)) {
+			//
+			//画像サイズを取得する。
+//			list($orgWidth, $orgHeight, $orgImgType, $attr) = getimagesize($path.$fileName);
+			$imagesize = getimagesize($path.$fileName);
+
+			_Log("[_GetImage] 画像情報 = '".print_r($imagesize,true)."'");
+
+			$attr = $imagesize[3];
+
+			$reSizeFlag = false;
+			if (!_IsNull($showSize)) {
+				//縦・横の幅が100px以上の場合、縮小する。
+				if ($imagesize[0] > $showSize) $reSizeFlag = true;
+				if ($imagesize[1] > $showSize) $reSizeFlag = true;
+			}
+
+			if ($reSizeFlag) {
+				//画像サイズを縮小する。
+				$listNewSize = _ImageResize($imagesize[0], $imagesize[1], $showSize);
+				//画像サイズの設定をする。
+				$attr = $listNewSize['attr'];
+			}
+
+			if (!_IsNull($dir)) $dir .= "/";
+			$res .= "<img src=\"".$url."/".$dir.$fileName."\" ".$attr." alt=\"画像\" />";
+		}
+
+	}
+
+	_Log("[_GetImage] 結果 = '".$res."'");
+	_Log("[_GetImage] end.");
+
+	return $res;
+}
+
+/**
+ * 	画像アップロードをする。
+ *
+ * @param	mixed	$info				フォーム情報
+ * @param	mixed	$file				アップロード情報
+ * @param	string	$baseName			フォーム情報、アップロード情報配列のキー値1
+ * @param	string	$itemName			フォーム情報、アップロード情報配列のキー値2
+ * @param	string	$tempDirBase		基本一時保存フォルダのフルパス
+ * @param	int		$mode				動作モード{1:通常/2:商品画像用/3:ボトル画像用/4:彫刻パターン画像用/5:彫刻文字(和字)画像用/6:彫刻文字(英字)画像用}
+ * @param	string	$tempDirNameFormat	基本一時保存フォルダに作成されるフォルダのフォルダ名のフォーマット(date()のフォーマット)
+ * @param	string	$fileNameFormat		アップロードファイルのファイル名のフォーマット(date()のフォーマット)
+ * @return	string	エラーメッセージ
+ * @access  public
+ * @since
+ */
+function _UploadImage(&$info, $file, $baseName, $itemName, $tempDirBase, $mode = 1, $tempDirNameFormat = FILE_TEMP_DIR_NAME_FORMAT, $fileNameFormat = FILE_NAME_FORMAT) {
+	_Log("[_UploadImage] start.");
+	_Log("[_UploadImage] (param) フォーム情報 = '".print_r($info,true)."'");
+	_Log("[_UploadImage] (param) アップロード情報(\$_FILES) = '".print_r($file,true)."'");
+	_Log("[_UploadImage] (param) フォーム情報、アップロード情報配列のキー値1 = '".$baseName."'");
+	_Log("[_UploadImage] (param) フォーム情報、アップロード情報配列のキー値2 = '".$itemName."'");
+	_Log("[_UploadImage] (param) 基本一時保存フォルダのフルパス = '".$tempDirBase."'");
+	_Log("[_UploadImage] (param) 動作モード{1:通常/2:アイテム画像用} = '".$mode."'");
+	_Log("[_UploadImage] (param) 基本一時保存フォルダに作成されるフォルダのフォルダ名のフォーマット(date()のフォーマット) = '".$tempDirNameFormat."'");
+	_Log("[_UploadImage] (param) アップロードファイルのファイル名のフォーマット(date()のフォーマット) = '".$fileNameFormat."'");
+
+
+	$message = null;
+
+	if (isset($file['file_update'])) {
+
+		//一時保存フォルダ名を作成する。
+		$tempDirName = date($tempDirNameFormat);
+		if (isset($info['condition']['_file_upload_temp_dir_']) && !_IsNull($info['condition']['_file_upload_temp_dir_'])) {
+			//一時保存フォルダを作成済みの場合、同じフォルダにアップする。
+			$tempDirName = $info['condition']['_file_upload_temp_dir_'];
+		}
+
+		$imgNo = 0;
+
+		$bufFileName = null;
+		$bufFileNameCount = 0;
+
+		foreach ($file['file_update']['error'][$baseName] as $key => $fileError) {
+			$imgNo++;
+
+			$showName = "画像ファイル [".$imgNo."] ";
+			$errNo = $fileError[$itemName];
+
+			_Log("[_UploadImage] ".$imgNo."つ目*******************************************");
+			_Log("[_UploadImage] エラーNo = '".$errNo."'");
+
+			//アップロードのエラーチェック
+			switch ($errNo) {
+				case UPLOAD_ERR_OK:
+					//値: 0; エラーはなく、ファイルアップロードは成功しています。
+
+					_Log("[_UploadImage] アップロードは成功");
+
+					//クライアントマシンの元のファイル名を取得する。
+					$fileName = $file['file_update']['name'][$baseName][$key][$itemName];
+					//テンポラリファイル名を取得する。
+					$fileTempName = $file['file_update']['tmp_name'][$baseName][$key][$itemName];
+
+					_Log("[_UploadImage] クライアントマシンの元のファイル名 = '".$fileName."'");
+					_Log("[_UploadImage] テンポラリファイル名 = '".$fileTempName."'");
+
+					//画像の情報を取得する。
+					$imagesize = getimagesize($fileTempName);
+					_Log("[_UploadImage] 画像情報(getimagesize) = '".print_r($imagesize,true)."'");
+
+					//画像ファイルかチェックする。
+					//拡張子も設定する。
+					$orgImgType = $imagesize[2];
+					$extension = null;
+					switch ($orgImgType) {
+					case IMAGETYPE_GIF:
+						$extension = "gif";
+						break;
+					case IMAGETYPE_JPEG:
+						$extension = "jpg";
+						break;
+					case IMAGETYPE_PNG:
+						$extension = "png";
+						break;
+					case IMAGETYPE_BMP:
+						$extension = "bmp";
+						break;
+					default:
+						$message .= $showName."は画像ファイルではありません。(jpg,gif,png,bmp)\n";
+						_Log("[_UploadImage] 画像ファイルではない！");
+						continue 2;
+						break;
+					}
+
+					//保存用のファイル名を作成する。
+//					$sysFileName = sprintf($fileNameFormat, $imgNo).".".$extension;
+//					$sysFileName = date($fileNameFormat).".".$extension;
+
+
+					$bufName = date($fileNameFormat);
+					if ($bufName == $bufFileName) {
+						$bufFileNameCount++;
+					} else {
+						$bufFileNameCount = 1;
+					}
+					$bufFileName = $bufName;
+					$sysFileName = $bufFileName.sprintf('%02d', $bufFileNameCount).".".$extension;
+
+					_Log("[_UploadImage] 新ファイル名 = '".$sysFileName."'");
+					_Log("[_UploadImage] 拡張子 = '".$extension."'");
+//
+
+					//一時保存フォルダを作成する。
+					$tempDir = $tempDirBase.'/'.$tempDirName.'/';
+
+					_Log("[_UploadImage] 一時保存フォルダ = '".$tempDir."'");
+
+					if (!is_dir($tempDir)) {
+						_Log("[_UploadImage] 一時保存フォルダ無し→作成する。");
+						mkdir($tempDir);
+						chmod($tempDir, 0777);//属性の前には0をつける。→777にしないとFTPから削除できなくなるので…
+
+
+						$info['condition']['_file_upload_temp_dir_'] = $tempDirName;
+
+					} else {
+						_Log("[_UploadImage] 一時保存フォルダ有り→作成しない。");
+					}
+
+					$tempFile = $tempDir.$sysFileName;
+
+					//一時保存フォルダに移動する。
+					if (move_uploaded_file($fileTempName, $tempFile)) {
+
+						$orgWidth = $imagesize[0];
+						$orgHeight = $imagesize[1];
+
+						$resizeFlag = false;
+						switch ($mode) {
+							case 2:
+								//商品画像の場合
+								switch ($imgNo) {
+									case 1:
+										//1つ目の画像は、サムネイル用に使用する。200px×200pxに縮小する。
+										$newWidth = FILE_ITEM_IMG_PX_SIZE_4_THUMBNAIL_WIDTH;
+										$newHeight = FILE_ITEM_IMG_PX_SIZE_4_THUMBNAIL_HEIGHT;
+
+										$resizeFlag = true;
+
+										_Log("[_UploadImage] 1つ目の画像は、サムネイル用に使用する。200px×200pxに縮小する。");
+										break;
+									default:
+										_Log("[_UploadImage] 2つ目以降の画像は、縮小しない。");
+										break;
+								}
+								break;
+							case 3:
+								//ボトル画像の場合
+								//画像は、サムネイル用に使用する。200px×200pxに縮小する。
+								$newWidth = FILE_BOTTLE_IMG_PX_SIZE_4_THUMBNAIL_WIDTH;
+								$newHeight = FILE_BOTTLE_IMG_PX_SIZE_4_THUMBNAIL_HEIGHT;
+
+								$resizeFlag = true;
+
+								_Log("[_UploadImage] 画像は、サムネイル用に使用する。200px×200pxに縮小する。");
+								break;
+							case 4:
+								//彫刻パターン画像の場合
+								//画像は、サムネイル用に使用する。150px×176pxに縮小する。
+								$newWidth = FILE_DESIGN_IMG_PX_SIZE_4_THUMBNAIL_WIDTH;
+								$newHeight = FILE_DESIGN_IMG_PX_SIZE_4_THUMBNAIL_HEIGHT;
+
+								$resizeFlag = true;
+
+								_Log("[_UploadImage] 画像は、サムネイル用に使用する。150px×176pxに縮小する。");
+								break;
+							case 5:
+								//彫刻文字(和字)画像の場合
+								//画像は、サムネイル用に使用する。214px×18pxに縮小する。
+								$newWidth = FILE_CHARACTER_J_IMG_PX_SIZE_4_THUMBNAIL_WIDTH;
+								$newHeight = FILE_CHARACTER_J_IMG_PX_SIZE_4_THUMBNAIL_HEIGHT;
+
+								$resizeFlag = true;
+
+								_Log("[_UploadImage] 画像は、サムネイル用に使用する。214px×18pxに縮小する。");
+								break;
+							case 6:
+								//彫刻文字(英字)画像の場合
+								//画像は、サムネイル用に使用する。214px×18pxに縮小する。
+								$newWidth = FILE_CHARACTER_E_IMG_PX_SIZE_4_THUMBNAIL_WIDTH;
+								$newHeight = FILE_CHARACTER_E_IMG_PX_SIZE_4_THUMBNAIL_HEIGHT;
+
+								$resizeFlag = true;
+
+								_Log("[_UploadImage] 画像は、サムネイル用に使用する。214px×18pxに縮小する。");
+								break;
+
+						}
+
+						if ($resizeFlag) {
+							switch ($orgImgType) {
+							case IMAGETYPE_GIF:
+								$im1 = @imagecreatefromgif($tempFile); //元画像の読み込み
+								$im2 = @imagecreatetruecolor($newWidth, $newHeight); //縮小画像の作成
+								imagecopyresampled($im2,$im1, 0, 0, 0, 0, $newWidth, $newHeight, $orgWidth, $orgHeight); //コピー
+								imagegif($im2, $tempFile); //ディスクに出力
+								break;
+							case IMAGETYPE_JPEG:
+								$im1 = @imagecreatefromjpeg($tempFile); //元画像の読み込み
+								$im2 = @imagecreatetruecolor($newWidth, $newHeight); //縮小画像の作成
+								imagecopyresampled($im2,$im1, 0, 0, 0, 0, $newWidth, $newHeight, $orgWidth, $orgHeight); //コピー
+								imagejpeg($im2, $tempFile); //ディスクに出力
+								break;
+							case IMAGETYPE_PNG:
+								$im1 = @imagecreatefrompng($tempFile); //元画像の読み込み
+								$im2 = @imagecreatetruecolor($newWidth, $newHeight); //縮小画像の作成
+								imagecopyresampled($im2,$im1, 0, 0, 0, 0, $newWidth, $newHeight, $orgWidth, $orgHeight); //コピー
+								imagepng($im2, $tempFile); //ディスクに出力
+								break;
+							case IMAGETYPE_BMP:
+//								$im1 = @imagecreatefromwbmp($tempFile); //元画像の読み込み
+//								$im2 = @imagecreatetruecolor($newWidth, $newHeight); //縮小画像の作成
+//								imagecopyresampled($im2,$im1, 0, 0, 0, 0, $newWidth, $newHeight, $orgWidth, $orgHeight); //コピー
+//								imagewbmp($im2, $tempFile); //ディスクに出力
+								break;
+							default:
+								break;
+							}
+						}
+
+						//アップロードしたファイル名を保存する。
+						$info['update'][$baseName][$key][$itemName] = $sysFileName;
+
+					} else {
+						$message .= $showName."のファイルアップロードに失敗しました。\n";
+					}
+
+					break;
+				case UPLOAD_ERR_INI_SIZE:
+					//値: 1; アップロードされたファイルは、php.ini の upload_max_filesize ディレクティブの値を超えています。
+					$message .= $showName."のファイルアップロードに失敗しました。ファイルサイズが大きすぎます。サーバがアップロード可能なサイズ(upload_max_filesize=".ini_get ('upload_max_filesize')."バイト)を超えています。\n";
+					break;
+				case UPLOAD_ERR_FORM_SIZE:
+					//値: 2; アップロードされたファイルは、HTML フォームで指定された MAX_FILE_SIZE を超えています。
+					$message .= $showName."のファイルアップロードに失敗しました。ファイルサイズが大きすぎます。サーバがアップロード可能なサイズ(MAX_FILE_SIZE=".$_POST['MAX_FILE_SIZE']."バイト)を超えています。\n";
+					break;
+				case UPLOAD_ERR_PARTIAL:
+					//値: 3; アップロードされたファイルは一部のみしかアップロードされていません。
+					$message .= $showName."のファイルアップロードに失敗しました。\n";
+					break;
+				case UPLOAD_ERR_NO_FILE:
+					//値: 4; ファイルはアップロードされませんでした。
+					break;
+				case UPLOAD_ERR_NO_TMP_DIR:
+					//値: 6; テンポラリフォルダがありません。PHP 4.3.10 と PHP 5.0.3 で導入されました。
+					$message .= $showName."のファイルアップロードに失敗しました。\n";
+					break;
+				case UPLOAD_ERR_CANT_WRITE:
+					//値: 7; ディスクへの書き込みに失敗しました。PHP 5.1.0 で導入されました。
+					$message .= $showName."のファイルアップロードに失敗しました。\n";
+					break;
+			}
+
+		}
+
+	}
+
+	_Log("[_UploadImage] end.");
+
+	return $message;
+}
+
+/**
+ * 画像ファイルを古いものから新しいものに更新する。
+ * (画像ファイルを一時保存フォルダから本番用フォルダに移動する。)
+ *
+ * @param	string	$keyName		画像情報のキーとなる項目のキー値
+ * @param	string	$fileName		画像情報のファイル名が設定されてる項目のキー値
+ * @param	mixed	$oldImageList	古い画像情報
+ * @param	string	$oldDir			古い画像があるフォルダ
+ * @param	mixed	$newImageList	新しい画像情報
+ * @param	string	$newDir			新しい画像があるフォルダ
+ * @return	boolean	{true:成功/false:失敗}
+ * @access  public
+ * @since
+ */
+function _UpdateImage($keyName, $fileName, $oldImageList, $oldDir, $newImageList, $newDir) {
+	_Log("[_UpdateImage] start.");
+	_Log("[_UpdateImage] (param) 画像情報のキーとなる項目のキー値 = '".$keyName."'");
+	_Log("[_UpdateImage] (param) 画像情報のファイル名が設定されてる項目のキー値 = '".$fileName."'");
+	_Log("[_UpdateImage] (param) 古い画像情報 = '".print_r($oldImageList,true)."'");
+	_Log("[_UpdateImage] (param) 古い画像があるフォルダ = '".$oldDir."'");
+	_Log("[_UpdateImage] (param) 新しい画像情報 = '".print_r($newImageList,true)."'");
+	_Log("[_UpdateImage] (param) 新しい画像があるフォルダ = '".$newDir."'");
+
+	$oldDir .= '/';
+	$newDir .= '/';
+
+	//画像情報の詰め替えをする。
+	$oldList = array();
+	if (!_IsNull($oldImageList)) {
+		foreach ($oldImageList as $key => $imgInfo) {
+			$oldList[$imgInfo[$keyName]] = $imgInfo;
+		}
+	}
+	$newList = array();
+	if (!_IsNull($newImageList)) {
+		foreach ($newImageList as $key => $imgInfo) {
+			$newList[$imgInfo[$keyName]] = $imgInfo;
+		}
+	}
+
+	_Log("[_UpdateImage] {詰め替え後} 古い画像情報 = '".print_r($oldList,true)."'");
+	_Log("[_UpdateImage] {詰め替え後} 新しい画像情報 = '".print_r($newList,true)."'");
+
+	//件数を取得する。
+	$oldCount = count($oldList);
+	$newCount = count($newList);
+	$maxCount = (($oldCount < $newCount)?$newCount:$oldCount);
+	$loopList = (($oldCount < $newCount)?$newList:$oldList);
+
+	_Log("[_UpdateImage] 古い画像情報の件数 = '".$oldCount."'");
+	_Log("[_UpdateImage] 新しい画像情報の件数 = '".$newCount."'");
+	_Log("[_UpdateImage] 最大件数 = '".$maxCount."'");
+
+	//本番用フォルダが存在しない場合、新規作成する。
+	if (!is_dir($oldDir)) {
+		_Log("[_UploadItemImage] 本番用フォルダが存在しない→新規作成する。");
+		mkdir($oldDir);
+		chmod($oldDir, 0777);//属性の前には0をつける。→777にしないとFTPから削除できなくなるので…
+	}
+
+	//画像を移動する。
+//	for ($i = 1; $i <= $maxCount; $i++) {
+	foreach ($loopList as $i => $loopInfo) {
+
+		_Log("[_UpdateImage] ".$i."件目 ********************");
+		//新しい画像情報は、画像有りか？
+		if (isset($newList[$i][$fileName]) && !_IsNull($newList[$i][$fileName])) {
+			_Log("[_UpdateImage] 新しい画像【有】");
+			//新しい画像はどこにあるか？
+			if (is_file($newDir.$newList[$i][$fileName])) {
+				_Log("[_UpdateImage] 新しい画像【有】→新フォルダ(一時保存用)【有】");
+				//古い画像情報は、画像有りか？
+				if (isset($oldList[$i][$fileName]) && !_IsNull($oldList[$i][$fileName])) {
+					_Log("[_UpdateImage] 新しい画像【有】→新フォルダ(一時保存用)【有】→古い画像【有】");
+					//古い画像は存在するか？
+					if (is_file($oldDir.$oldList[$i][$fileName])) {
+						_Log("[_UpdateImage] 新しい画像【有】→新フォルダ(一時保存用)【有】→古い画像【有】→古フォルダ(本番保存用)【有】");
+						$del = $oldDir.$oldList[$i][$fileName];
+						_Log("[_UpdateImage] {古い画像を削除する} '".$del."'");
+						unlink($del);
+					} else {
+						_Log("[_UpdateImage] 新しい画像【有】→新フォルダ(一時保存用)【有】→古い画像【有】→古フォルダ(本番保存用)【無】(無いはずがない。手動削除か？)");
+					}
+				} else {
+					_Log("[_UpdateImage] 新しい画像【有】→新フォルダ(一時保存用)【有】→古い画像【無】");
+				}
+				$old = $newDir.$newList[$i][$fileName];
+				$new = $oldDir.$newList[$i][$fileName];
+				_Log("[_UpdateImage] {新しい画像を移動する} '".$old."' ⇒ '".$new."'");
+				rename($old, $new);
+			} else {
+				_Log("[_UpdateImage] 新しい画像【有】→新フォルダ(一時保存用)【無】");
+				//古フォルダ(本番保存用)にあるか？
+				if (is_file($oldDir.$newList[$i][$fileName])) {
+					_Log("[_UpdateImage] 新しい画像【有】→新フォルダ(一時保存用)【無】→古フォルダ(本番保存用)【有】(現状維持。画像の変更なし！)");
+				} else {
+					_Log("[_UpdateImage] 新しい画像【有】→新フォルダ(一時保存用)【無】→古フォルダ(本番保存用)【無】(無いはずがない。手動削除か？)");
+				}
+			}
+		} else {
+			_Log("[_UpdateImage] 新しい画像【無】");
+
+			//古い画像情報は、画像有りか？
+			if (isset($oldList[$i][$fileName]) && !_IsNull($oldList[$i][$fileName])) {
+				_Log("[_UpdateImage] 新しい画像【無】→古い画像【有】");
+				//古い画像は存在するか？
+				if (is_file($oldDir.$oldList[$i][$fileName])) {
+					_Log("[_UpdateImage] 新しい画像【無】→古い画像【有】→古フォルダ(本番保存用)【有】");
+					$del = $oldDir.$oldList[$i][$fileName];
+					_Log("[_UpdateImage] {古い画像を削除する} '".$del."'");
+					unlink($del);
+				} else {
+					_Log("[_UpdateImage] 新しい画像【無】→古い画像【有】→古フォルダ(本番保存用)【無】(無いはずがない。手動削除か？)");
+				}
+			} else {
+				_Log("[_UpdateImage] 新しい画像【無】→古い画像【無】(現状維持。画像の追加なし！)");
+			}
+		}
+
+
+ 	}
+
+
+ 	_Log("[_UpdateImage] {新しい画像があったフォルダとフォルダ内に残ってるゴミファイルを削除する。------------------start}");
+ 	//新しい画像があるフォルダに残ってるゴミファイルを削除する。
+	$dh = opendir($newDir);
+	while (false !== ($file = readdir($dh))) {
+		$buf = $newDir.$file;
+		if (is_file($buf)) {
+			_Log("[_UpdateImage] {ゴミファイルを削除する} '".$buf."'");
+			unlink($buf);
+		}
+	}
+	closedir($dh);
+
+	_Log("[_UpdateImage] {新しい画像があったフォルダを削除する} '".$newDir."'");
+	rmdir($newDir);
+ 	_Log("[_UpdateImage] {新しい画像があったフォルダとフォルダ内に残ってるゴミファイルを削除する。------------------end}");
+
+	_Log("[_UpdateImage] end.");
+
+	return true;
+}
+
+
+/**
+ * アップロード画像ファイル用の一時保存フォルダを掃除する。
+ *
+ * @param	string	$dir		一時保存フォルダ
+ * @param	int		$cleanDay	何日前のフォルダを削除するかの日数
+ * @return	boolean	{true:成功/false:失敗}
+ * @access  public
+ * @since
+ */
+function _CleanTempImage($dir, $cleanDay) {
+	_Log("[_CleanTempImage] start.");
+	_Log("[_CleanTempImage] (param) 一時保存フォルダ = '".$dir."'");
+	_Log("[_CleanTempImage] (param) 何日前のフォルダを削除するかの日数 = '".$cleanDay."'");
+
+	$dir .= '/';
+
+	$dh = opendir($dir);
+	while (false !== ($file = readdir($dh))) {
+		if ($file == '..') continue;
+		if ($file == '.') continue;
+
+		$buf = $dir.$file;
+
+		_Log("[_CleanTempImage] file = '".$buf."'");
+		if (is_dir($buf)) {
+
+			//ファイルに関する情報を取得する
+			$stat = stat($buf);
+			_Log("[_CleanTempImage] mtime (最終修正時間(Unixタイムスタンプ)) = '".date ("Y/m/d H:i:s.", $stat['mtime'])."'");
+			$cleanTime = mktime(0, 0, 0, date('n'), date('j') - $cleanDay, date('Y'));
+			_Log("[_CleanTempImage] cleanTime (掃除時間) = '".date ("Y/m/d H:i:s.", $cleanTime)."'");
+			if ($stat['mtime'] < $cleanTime) {
+				_Log("[_CleanTempImage] 古いので削除する。");
+				//下位のフォルダ、ファイルを再帰で削除する。
+				_CleanTempImage($buf, $cleanDay);
+				//下位が削除できたら、自フォルダを削除する。
+				rmdir($buf);
+				_Log("[_CleanTempImage] {ゴミフォルダを削除する} '".$buf."'");
+			}
+
+		} elseif (is_file($buf)) {
+			_Log("[_CleanTempImage] {ゴミファイルを削除する} '".$buf."'");
+			unlink($buf);
+		}
+	}
+	closedir($dh);
+
+	_Log("[_CleanTempImage] end.");
+}
+
+
+
+//glassart-gen.comサイト用 ------------------------------------------------ end
+
+
+
+//交通事故サイト用 ------------------------------------------------ start
+/**
+ * 問合せ_状況履歴リストを作成する。
+ *
+ * @param	mixed   $info		フォーム情報
+ * @return	string	リストタグ文字列
+ * @access  public
+ * @since
+ */
+function _GetInquiryStatusHistory($info) {
+	_Log("[_GetInquiryStatusHistory] start.");
+    _Log("[_GetInquiryStatusHistory] (param) フォーム情報 = '".print_r($info,true)."'");
+
+	$buf = null;
+
+	//問合せIDを取得する。
+	$inquiryId = $info['update']['tbl_inquiry']['iuq_inquiry_id'];
+	if (!_IsNull($inquiryId)) {
+		//問合せ_状況履歴テーブル情報を取得する。
+		$condition4history = array();
+		$condition4history['iuq_sts_inquiry_id'] = $inquiryId;
+		$order = "iuq_sts_no desc";//ソート条件=Noの降順
+		$tblInquiryStatusHistoryList = _DB_GetList('tbl_inquiry_status_history', $condition4history, true, $order);
+		if (!_IsNull($tblInquiryStatusHistoryList)) {
+			//状況マスタ情報を取得する。
+			$mstStatusList = _GetMasterList('mst_status', false);
+
+			//文字をHTMLエンティティに変換する。
+			$tblInquiryStatusHistoryList = _HtmlSpecialCharsForArray($tblInquiryStatusHistoryList);
+			$mstStatusList = _HtmlSpecialCharsForArray($mstStatusList);
+
+			$buf .= "<dl class=\"statusHistory\">";
+			$buf .= "\n";
+			foreach ($tblInquiryStatusHistoryList as $shkey => $tblInquiryStatusHistoryInfo) {
+				$buf .= "<dt>";
+				$buf .= _GetValueFromList($mstStatusList, $tblInquiryStatusHistoryInfo['iuq_sts_status_id']);
+				$buf .= "</dt>";
+				$buf .= "\n";
+				$buf .= "<dd>";
+				$buf .= $tblInquiryStatusHistoryInfo['iuq_sts_create_date_yyyymmddhhmmss'];
+				$buf .= "</dd>";
+				$buf .= "\n";
+			}
+			$buf .= "</dl>";
+		}
+	}
+    _Log("[_GetInquiryStatusHistory] 結果 = '".$buf."'");
+	_Log("[_GetInquiryStatusHistory] end.");
+	return $buf;
+
+}
+
+
+
+/**
+ * 問合せ_等級確定履歴リストを作成する。
+ *
+ * @param	mixed   $info		フォーム情報
+ * @return	string	リストタグ文字列
+ * @access  public
+ * @since
+ */
+function _GetInquiryAftereffectsGradeDecisionHistory($info) {
+	_Log("[_GetInquiryAftereffectsGradeDecisionHistory] start.");
+    _Log("[_GetInquiryAftereffectsGradeDecisionHistory] (param) フォーム情報 = '".print_r($info,true)."'");
+
+	$buf = null;
+
+	//問合せIDを取得する。
+	$inquiryId = $info['update']['tbl_inquiry']['iuq_inquiry_id'];
+	if (!_IsNull($inquiryId)) {
+		$condition = array();
+		$condition['iuq_inquiry_id'] = $inquiryId;									//問合せID
+		$condition['add_tbl_inquiry_aftereffects_grade_decision'] = true;		//問合せ_後遺障害等級(級)_確定テーブルを検索対象に追加する。
+		$order = "t_iuq_agd.iuq_agd_no";
+		$inquiryList = _GetInquiry($condition, $order, false, false, 1, null, 3);
+
+		if (!_IsNull($inquiryList)) {
+			//後遺障害等級(級)マスタ情報を取得する。
+			$mstAftereffectsGrade01List = _GetMasterList('mst_aftereffects_grade_01', false);
+
+			//文字をHTMLエンティティに変換する。
+			$inquiryList = _HtmlSpecialCharsForArray($inquiryList);
+			$mstAftereffectsGrade01List = _HtmlSpecialCharsForArray($mstAftereffectsGrade01List);
+
+
+			$bufTHead = null;
+			$bufTHead .= "<thead>";
+			$bufTHead .= "\n";
+			$bufTHead .= "<tr>";
+			$bufTHead .= "\n";
+			$bufTHead .= "<td>等級確定日</td>";
+			$bufTHead .= "\n";
+			$bufTHead .= "<td>等級</td>";
+			$bufTHead .= "\n";
+			$bufTHead .= "<td>レギュラー</td>";
+			$bufTHead .= "\n";
+			$bufTHead .= "<td>プレミア</td>";
+			$bufTHead .= "\n";
+			$bufTHead .= "<td>合計</td>";
+			$bufTHead .= "\n";
+			$bufTHead .= "<td>備考</td>";
+			$bufTHead .= "\n";
+			$bufTHead .= "</tr>";
+			$bufTHead .= "\n";
+			$bufTHead .= "</thead>";
+			$bufTHead .= "\n";
+
+			$bufTBody = null;
+			$bufTBody .= "<tbody>";
+			$bufTBody .= "\n";
+
+			//合計
+			$totalStartPrice = 0;
+			$totalAftereffectsGrade01 = 0;
+			$totalPrice = 0;
+
+			//一つ前の確定時の金額
+			$preStartPrice = 0;
+			$preAftereffectsGrade01 = 0;
+
+			$subInquiryList = $inquiryList[$inquiryId];
+			foreach ($subInquiryList as $iuqAgdNo => $iuqAgdNoList) {
+
+
+				//着手金額(レギュラー)
+				$startPrice = 0;
+				$startPriceShow = null;
+				$startPriceFlag = false;
+				if (isset($iuqAgdNoList['iuq_tac_start_price']) && !_IsNull($iuqAgdNoList['iuq_tac_start_price'])) {
+					$startPrice = $iuqAgdNoList['iuq_tac_start_price'];
+					$startPriceShow = number_format($startPrice);
+					$startPriceFlag = true;
+				}
+
+				//後遺障害等級(級)金額(プレミア)
+				$aftereffectsGrade01Price = 0;
+				$aftereffectsGrade01PriceShow = null;
+				$aftereffectsGrade01PriceShowNote = null;
+				$aftereffectsGrade01PriceFlag = false;
+				if (isset($iuqAgdNoList['iuq_agd_aftereffects_grade_01_price']) && !_IsNull($iuqAgdNoList['iuq_agd_aftereffects_grade_01_price'])) {
+					$aftereffectsGrade01Price = $iuqAgdNoList['iuq_agd_aftereffects_grade_01_price'];
+					$aftereffectsGrade01PriceShow = number_format($aftereffectsGrade01Price);
+					$aftereffectsGrade01PriceShowNote = "(プレミア=".number_format($aftereffectsGrade01Price).")";
+					$aftereffectsGrade01PriceFlag = true;
+				}
+
+				if ($iuqAgdNoList['iuq_agd_no'] == 1) {
+					//初回確定の場合
+					//金額を保持する。→次の確定の差額計算に使用する。
+					$preStartPrice = $startPrice;
+					$preAftereffectsGrade01 = $aftereffectsGrade01Price;
+
+					$aftereffectsGrade01PriceShowNote = null;
+
+				} else {
+					//2回目以降の確定の場合
+
+					//退避する。
+					$bufStartPrice = $startPrice;
+					$bufAftereffectsGrade01Price = $aftereffectsGrade01Price;
+
+					//差額を計算する。
+					//着手金額(レギュラー)
+					$startPrice -= $preStartPrice;
+					if ($startPriceFlag) $startPriceShow = number_format($startPrice);
+					//後遺障害等級(級)金額(プレミア)
+					$aftereffectsGrade01Price -= $preAftereffectsGrade01;
+					if ($aftereffectsGrade01PriceFlag) $aftereffectsGrade01PriceShow = number_format($aftereffectsGrade01Price);
+
+					//金額を保持する。→次の確定の差額計算に使用する。
+					$preStartPrice = $bufStartPrice;
+					$preAftereffectsGrade01 = $bufAftereffectsGrade01Price;
+				}
+
+				//小計
+				$subTotalPrice = $startPrice + $aftereffectsGrade01Price;
+				$subTotalPriceShow = null;
+				if ($startPriceFlag || $aftereffectsGrade01PriceFlag) {
+					$subTotalPriceShow = number_format($subTotalPrice);
+				}
+
+				//合計
+				$totalStartPrice += $startPrice;
+				$totalAftereffectsGrade01 += $aftereffectsGrade01Price;
+				$totalPrice += $subTotalPrice;
+
+				$bufTBody .= "<tr>";
+				$bufTBody .= "\n";
+
+				$bufTBody .= "<td>";
+				$bufTBody .= $iuqAgdNoList['iuq_agd_create_date_yyyymmddhhmmss'];
+				$bufTBody .= "</td>";
+				$bufTBody .= "\n";
+				$bufTBody .= "<td>";
+				$bufTBody .= _GetValueFromList($mstAftereffectsGrade01List, $iuqAgdNoList['iuq_agd_aftereffects_grade_01_id']);
+				$bufTBody .= "</td>";
+				$bufTBody .= "\n";
+				$bufTBody .= "<td class=\"colNum\">";
+				$bufTBody .= $startPriceShow;
+				$bufTBody .= "</td>";
+				$bufTBody .= "\n";
+				$bufTBody .= "<td class=\"colNum\">";
+				$bufTBody .= $aftereffectsGrade01PriceShow;
+				$bufTBody .= "</td>";
+				$bufTBody .= "\n";
+				$bufTBody .= "<td class=\"colNum\">";
+				$bufTBody .= $subTotalPriceShow;
+				$bufTBody .= "</td>";
+				$bufTBody .= "\n";
+				$bufTBody .= "<td>";
+				$bufTBody .= $aftereffectsGrade01PriceShowNote;
+				$bufTBody .= "</td>";
+				$bufTBody .= "\n";
+
+				$bufTBody .= "</tr>";
+				$bufTBody .= "\n";
+
+			}
+
+			$bufTBody .= "</tbody>";
+			$bufTBody .= "\n";
+
+			$bufTFoot = null;
+			$bufTFoot .= "<tfoot>";
+			$bufTFoot .= "\n";
+
+			$bufTFoot .= "<tr>";
+			$bufTFoot .= "\n";
+
+			$bufTFoot .= "<td colspan=\"2\">合計</td>";
+			$bufTFoot .= "\n";
+			$bufTFoot .= "<td class=\"colNum\">";
+			$bufTFoot .= number_format($totalStartPrice);
+			$bufTFoot .= "</td>";
+			$bufTFoot .= "\n";
+			$bufTFoot .= "<td class=\"colNum\">";
+			$bufTFoot .= number_format($totalAftereffectsGrade01);
+			$bufTFoot .= "</td>";
+			$bufTFoot .= "\n";
+			$bufTFoot .= "<td class=\"colNum\">";
+			$bufTFoot .= number_format($totalPrice);
+			$bufTFoot .= "</td>";
+			$bufTFoot .= "\n";
+			$bufTFoot .= "<td>";
+			$bufTFoot .= "</td>";
+			$bufTFoot .= "\n";
+
+			$bufTFoot .= "</tr>";
+			$bufTFoot .= "\n";
+
+			$bufTFoot .= "</tfoot>";
+			$bufTFoot .= "\n";
+
+
+			$buf .= "<table class=\"decisionHistory\">";
+			$buf .= "\n";
+			$buf .= $bufTHead;
+			$buf .= $bufTFoot;
+			$buf .= $bufTBody;
+			$buf .= "</table>";
+
+		}
+	}
+    _Log("[_GetInquiryAftereffectsGradeDecisionHistory] 結果 = '".$buf."'");
+	_Log("[_GetInquiryAftereffectsGradeDecisionHistory] end.");
+	return $buf;
+
+}
+//交通事故サイト用 ------------------------------------------------ end
+
+
+
+
+?>

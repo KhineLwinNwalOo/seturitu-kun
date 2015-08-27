@@ -1,0 +1,450 @@
+@charset "EUC-JP";
+
+/** ----- base ----- **/
+
+
+img
+{
+	border: 0;
+}
+
+
+div#main
+{
+	margin: 0 auto;
+	padding: 0;
+	border: 0;
+	width: 100%;
+}
+
+
+div.end
+{
+	clear: both;
+}
+
+/*
+a:link {color: #31473c;}
+a:visited {color: #660cc7;}
+
+a:hover {color: #23e783;}
+a:active {color: #23e783;}
+*/
+a:visited {color: #1e94fc;}
+
+
+/*
+div#main h2
+{
+	margin: 0 0 25px 0;
+	padding: 0;
+	border: 0;
+	width: 100%;
+	height: 40px;
+}
+
+div#main div.breadcrumbs
+{
+	margin: 0 0 20px 0;
+	padding: 0;
+	border: 0;
+	width: 100%;
+}
+*/
+
+
+div#main div.content
+{
+	margin: 0 auto;
+	padding: 0;
+	border: 0;
+	width: 100%;
+}
+
+div#main div.content div.category
+{
+	float: left;
+	margin: 0 2px 20px 2px;
+	padding: 0;
+	border: 0;
+	width: 460px;
+	width: 360px;
+}
+
+div#main div.content div.category h3
+{
+	margin: 0 0 15px 0;
+	padding: 0;
+	border: 0;
+	width: 100%;
+	height: 45px;
+	line-height: 45px;
+	height: 35px;
+	line-height: 35px;
+	font-size: 1.2em;
+	font-weight: bold;
+	text-indent: 25px;
+	color: #00875e;
+	color: #fff;
+}
+
+div#main div.content div.category h3 a
+{
+	display: block;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	width: 100%;
+	height: 45px;
+	height: 35px;
+	color: #00875e;
+	color: #fff;
+	background-repeat: no-repeat;
+	background-position:  left top;
+}
+
+
+ div#main div.content div.category h3 a:link
+,div#main div.content div.category h3 a:visited
+{
+	background-image: url("../img/faq_01.png");
+}
+
+ div#main div.content div.category h3 a:hover
+,div#main div.content div.category h3 a:active
+{
+	background-image: url("../img/faq_01_02.png");
+}
+
+
+div#main div.content div.category ul
+{
+	margin: 0 auto;
+	padding: 0;
+	border: 0;
+	width: 440px;
+	width: 340px;
+	height: 160px;
+	list-style-type: none;
+}
+
+div#main div.content div.category ul li
+{
+	margin: 0;
+	padding: 0;
+	border: 0;
+	width: 100%;
+	height: 35px;
+	line-height: 35px;
+	text-indent: 30px;
+	border-bottom: 1px dashed #666;
+}
+
+
+div#main div.content div.category ul li a
+{
+	display: block;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	width: 100%;
+	height: 35px;
+	background-image: url("../img/arrow.gif");
+	background-repeat: no-repeat;
+}
+
+ div#main div.content div.category ul li a:link
+,div#main div.content div.category ul li a:visited
+{
+	background-position:  10px 50%;
+}
+
+ div#main div.content div.category ul li a:hover
+,div#main div.content div.category ul li a:active
+{
+	background-position:  15px 50%;
+}
+
+div#main div.content div.category div.message
+{
+	margin: 30px auto;
+	padding: 0;
+	border: 0;
+	width: 95%;
+	font-size: 1.2em;
+	font-weight: bold;
+}
+
+div#main div.content div.category_long
+{
+	clear: both;
+	margin: 0 0 20px 0;
+	width: 100%;
+}
+
+div#main div.content div.category_long h3
+{
+	background: url("../img/faq_01_l.png") no-repeat left top;
+}
+
+div#main div.content div.category_long ul
+{
+	width: 910px;
+	width: 715px;
+	height: auto;
+}
+
+div#main div.content div.category ul.search li
+{
+	min-height: 60px;
+	height: auto;
+}
+
+div#main div.content div.category ul.search li span.min
+{
+	display: block;
+	margin: 0 0 5px 4%;
+	padding: 2px;
+	border: 0;
+	width: 95%;
+	min-height: 25px;
+	height: auto;
+	font-size: 0.8em;
+	line-height: 1.2em;
+	text-indent: 0;
+	background-color: #efefef;
+}
+
+
+
+
+
+div#main div.content div.info
+{
+	margin: 0 auto 20px auto;
+	padding: 0;
+	border: 0;
+	width: 890px;
+	width: 695px;
+}
+
+div#main div.content div.info h3
+{
+	margin: 0 0 15px 0;
+	padding: 0;
+	border: 0;
+	width: 100%;
+	height: auto;
+	font-size: 1.4em;
+	line-height: 1.7em;
+	font-weight: bold;
+	text-indent: 0;
+	color: #00875e;
+	color: rgb(0,95,210);
+
+	background: none;
+}
+
+div#main div.content div.info div.answer
+{
+	margin: 0 auto;
+	padding: 20px 0;
+	border: 0;
+	width: 870px;
+	width: 675px;
+
+	border-top: 2px dashed #666;
+}
+
+
+div#main div.content div.info div.navi
+{
+	margin: 0 0 20px 0;
+	padding: 0;
+	border: 0;
+	width: 100%;
+	height: 25px;
+	line-height: 25px;
+
+	background: url("../img/navi_04.gif") no-repeat right top;
+}
+
+div#main div.content div.info div.navi span
+{
+	display: block;
+	margin: 0 15px 0 auto;
+	padding: 0;
+	border: 0;
+	width: 250px;
+	height: 25px;
+	text-indent: 20px;
+
+	background: #e4e4e4 url("../img/navi_03.gif") no-repeat left top;
+}
+
+
+div#main div.content div.info ol{list-style-position:inside;padding:0.5em 0;}
+
+
+div#main div.content div.contact
+{
+	margin: 0 auto 20px auto;
+	padding: 20px 0 0 0;
+	border: 0;
+	width: 400px;
+	height: 100px;
+
+	background: url("../img/contact_bg.png") no-repeat left top;
+}
+
+div#main div.content div.contact h3
+{
+	margin: 0 auto 10px auto;
+	padding: 0;
+	border: 0;
+	width: 330px;
+	height: 30px;
+	font-size: 1.2em;
+	line-height: 20px;
+	font-weight: bold;
+	color: #1837c7;
+}
+
+div#main div.content div.contact p
+{
+	margin: 0 auto;
+	padding: 0;
+	border: 0;
+	width: 300px;
+}
+
+
+div#main div.content form#frm_search
+{
+	margin: 0 auto 20px auto;
+	padding: 0;
+	border: 0;
+	width: 80%;
+	width: 90%;
+}
+
+div#main div.content form#frm_search input.txt
+{
+	width: 300px;
+	width: 200px;
+}
+
+div#main div.content form#frm_search input.btn
+{
+	width: 60px;
+}
+
+
+.amb
+{
+	background-color: #f7ffaf;
+}
+
+
+div#main div.content form#frm_login
+{
+	margin: 0 auto 20px auto;
+	padding: 20px;
+	border: 0;
+	width: 300px;
+	height: 200px;
+	background-color: #efefef;
+	border: 4px dashed #666;
+}
+
+div#main div.content form#frm_login input.txt
+{
+	width: 300px;
+}
+
+div#main div.content form#frm_login input.btn
+{
+	width: 60px;
+}
+
+div#main div.content form#frm_login h3
+{
+	margin: 0 0 5px 0;
+	padding: 0;
+	border: 0;
+	width: 100%;
+	height: 30px;
+	font-size: 1.2em;
+	line-height: 30px;
+	font-weight: bold;
+	color: #000;
+}
+
+div#main div.content form#frm_login div.message
+{
+	margin: 10px 0 0 0;
+	padding: 0;
+	border: 0;
+	width: 100%;
+	font-weight: bold;
+	color: #0bbf45;
+}
+
+div#main div#admin
+{
+	margin: 0 0 10px 0;
+	padding: 0;
+	border: 0;
+	width: 100%;
+	height: 20px;
+	text-align: right;
+}
+
+
+
+
+div#main div.content div.category ul.edit
+{
+	height: 245px;
+}
+
+div#main div.content div.category ul li.edit
+,div#main div.content div.category ul.search li.edit
+,div#main div.content div.info div.edit
+{
+	margin: 0;
+	padding: 0;
+	border: 0;
+	width: 100%;
+	min-height: 20px;
+	height: 20px;
+	line-height: 20px;
+	text-indent: 30px;
+	border-bottom: 1px dashed #666;
+	background-color: #efefef;
+}
+
+div#main div.content div.info div.edit
+{
+	margin-bottom: 10px;
+	border-bottom: none;
+}
+
+
+div#main div.content div.category ul li.edit a
+,div#main div.content div.category ul.search li.edit a
+,div#main div.content div.info div.edit a
+{
+	display: inline;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	width: auto;
+	height: 20px;
+	background: none;
+}
+
+
+
+
+

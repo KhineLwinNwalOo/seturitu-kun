@@ -1,0 +1,212 @@
+/*
+ * [新★会社設立.JP ツール]
+ * 入力フォーム用スタイルシート
+ * 定款認証 定款印刷ページ用
+ * 各種申請書類 印刷ページ用
+ *
+ * 更新履歴：2008/12/01	d.ishikawa	新規作成
+ *
+ */
+
+
+div.pdfset
+{
+	margin: 0 0 10px 10px;
+	padding: 0;
+	border: 0;
+	
+	width: 100%;
+	width: 570px;
+	width: 690px;
+
+/*border: 1px solid #808080;*/
+}
+
+div.pdfset div.pdf
+{
+	margin: 0 0 10px 10px;
+	padding: 0 0 10px 0;
+	border: 0;
+	
+	width: 560px;
+	width: 680px;
+
+/*border: 1px solid #aaa;*/
+}
+
+/*
+div.pdfset div.pdf img
+{
+	float: left;
+	margin: 0 10px 10px 0;
+	padding: 0;
+	border: 0;
+}
+*/
+
+
+div.pdfset div.pdf div.pdf_wrapper1
+{
+	float: left;
+	margin: 0 4px 0 0;
+	padding: 0;
+	border: 0;
+	
+	width: 350px;
+	width: 430px;
+}
+div.pdfset div.pdf div.pdf_wrapper2
+{
+	float: left;
+	margin: 0;
+	padding: 0;
+	border: 0;
+
+	width: 125px;
+	height: 80px;
+
+	position: relative;
+}
+div.pdfset div.pdf div.pdf_wrapper3
+{
+	float: left;
+	margin: 0 0 0 4px;
+	padding: 0;
+	border: 0;
+	
+	width: 69px;
+}
+
+div.pdfset div.pdf div.pdf_end
+{
+	clear: both;
+}
+
+
+
+div.pdfset div.pdf div.exp
+{
+	margin: 0 0 10px 0;
+	padding: 0;
+	border: 0;
+	
+	width: 100%;
+}
+
+div.pdfset div.pdf div.input
+{
+	margin: 0;
+	padding: 0;
+	border: 0;
+	
+	width: 100%;
+}
+
+div.pdfset div.pdf div.input dl
+{
+	margin: 0;
+	padding: 0;
+	border: 0;
+	
+	width: 100%;
+}
+
+div.pdfset div.pdf div.input dl dt
+{
+	float: left;
+	margin: 0 0 4px 0;
+	padding: 0;
+	border: 0;
+	
+	width: 20%;
+}
+
+div.pdfset div.pdf div.input dl dd
+{
+	margin: 0 0 4px 0;
+	padding: 0;
+	border: 0;
+	
+	width: 77%;
+}
+
+html>/**/body div.pdfset div.pdf div.input dl dd
+{
+	margin-left: 21%;
+}
+
+div.pdfset div.pdf div.num
+{
+	margin: 0;
+	padding: 0;
+	border: 0;
+	
+	width: 65px;
+	height: 15px;
+
+	position: absolute;
+	top: 10px;
+/*	right: 0;*/
+	left: 0;
+	
+	font-weight: bold;
+	text-align: center;
+}
+
+div.pdfset div.pdf div.size
+{
+	margin: 0;
+	padding: 0;
+	border: 0;
+	
+	width: 50px;
+	height: 70px;
+
+	position: absolute;
+	top: 0;
+/*	left: 0;*/
+	right: 0;
+
+	background-position: left top;
+	background-repeat: no-repeat;
+	
+	text-indent: -9999px;
+}
+
+/* del 2011/11/21
+div.pdfset div.pdf div.a4 {background-image: url("../img/pdf/pdf_a4.gif");}
+div.pdfset div.pdf div.b5 {background-image: url("../img/pdf/pdf_b5.gif");}
+*/
+
+div.pdfset div.pdf div.output
+{
+	margin: 0;
+	padding: 0;
+	border: 0;
+	
+	width: 65px;
+	height: 30px;
+
+	position: absolute;
+	top: 35px;
+/*	right: 0;*/
+	left: 0;
+}
+
+div.pdfset div.pdf div.output input
+{
+	border: 0;
+}
+
+div.pdfset div.pdf div.exp_link
+{
+	margin: 0;
+	padding: 0;
+	border: 0;
+	
+	width: 100%;
+	
+	text-align: right;
+	
+/*	height: 30px;*/
+}

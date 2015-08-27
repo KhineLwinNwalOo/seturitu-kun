@@ -1,0 +1,29 @@
+AddHandler x-httpd-php5.3 .php .phps
+
+AddType image/svg+xml .svg
+AddType image/svg+xml .svgz
+
+<IfModule mod_php5.c>
+	php_flag short_open_tag Off
+	php_value date.timezone "Asia/Tokyo"
+	php_value mbstring.language "Japanese"
+	php_value mbstring.internal_encoding "UTF-8"
+	php_value mbstring.http_input "auto"
+	php_value mbstring.http_output "UTF-8"
+	php_value mbstring.script_encoding "UTF-8"
+	php_flag mbstring.encoding_translation On
+	php_value output_handler "mb_output_handler"
+	php_value error_reporting 6135
+</IfModule>
+
+# BEGIN WordPress
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /article/
+RewriteRule ^index\.php$ - [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /article/index.php [L]
+</IfModule>
+
+# END WordPress

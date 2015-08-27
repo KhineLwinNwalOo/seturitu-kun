@@ -1,0 +1,1289 @@
+<?php
+/*
+ * [新★会社設立.JP ツール]
+ * 共通関数
+ *
+ * 更新履歴：2008/12/01	d.ishikawa	新規作成
+ *
+ */
+
+include_once(dirname(__FILE__)."/constants.ini");
+include_once(dirname(__FILE__)."/log.ini");
+
+/**
+ * NULLチェック。
+ * 引き数	$value			：文字列
+ * 戻り値  	true:NULLの場合/false:以外の場合
+ */
+function _IsNull($value) {
+	_Log("[_IsNull] start.", 5);
+	_Log("[_IsNull] 値='".$value."'", 5);
+	_Log("[_IsNull] gettype(".$value.")='".gettype($value)."'", 5);
+	_Log("[_IsNull] is_null(".$value.")='".is_null($value)."'", 5);
+
+	$return = false;
+
+	if (is_null($value)) {
+		$return = true;
+	} else {
+		switch (gettype($value)) {
+		case "integer":
+		case "double":
+		case "string":
+			$value .= ""; //$value=0(数値)の場合、以下の判断でtrueをなってしまうので、ここで文字列に変換する。
+			if ($value == "") $return = true;
+			break;
+		}
+
+	}
+
+	_Log("[_IsNull] 結果='".$return."'", 5);
+	_Log("[_IsNull] end.", 5);
+
+	return $return;
+}
+
+/**
+ * 文字列長チェック。
+ * 引き数	$value			：文字列
+ * 戻り値  	true:超過の場合/false:以外の場合
+ * 備考
+ * 　バイトサイズで判断する。
+ */
+function _IsMaxLength($value, $maxLength) {
+	if (_IsNull($value)) return false;
+
+	if (strlen($value) > $maxLength) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+/**
+ * 文字列長チェック。
+ * 引き数	$value			：文字列
+ * 戻り値  	true:超過の場合/false:以外の場合
+ * 備考
+ * 　文字数で判断する。
+ */
+function _IsMaxLengthMb($value, $maxLength, $encoding = "EUC-JP") {
+	_Log("[_IsMaxLengthMb] start.", 3);
+	_Log("[_IsMaxLengthMb] 値 = '".$value."'", 3);
+	_Log("[_IsMaxLengthMb] 最サイズ = '".$maxLength."'", 3);
+
+	$res = false;
+
+	if (_IsNull($value)) {
+
+	} else {
+		_Log("[_IsMaxLengthMb] サイズ = '".mb_strlen($value, $encoding)."'", 3);
+
+		if (mb_strlen($value, $encoding) > $maxLength) {
+			$res = true;
+		} else {
+		}
+	}
+
+	_Log("[_IsMaxLengthMb] 結果 = '".$res."'", 3);
+	_Log("[_IsMaxLengthMb] end.", 3);
+
+	return $res;
+}
+
+/**
+ * 半角英数字記号チェック。
+ * 引き数	$value			：文字列
+ * 戻り値  	true:半角英数字記号の場合/false:以外の場合
+ */
+function _IsHalfSizeChar($value) {
+	if (_IsNull($value)) return true;
+	if (preg_match ('/^[\x00-\x7F]+$/', $value)) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+/**
+ * 半角数字チェック。
+ * 引き数	$value			：文字列
+ * 戻り値  	true:半角数字の場合/false:以外の場合
+ */
+function _IsHalfSizeNumeric($value) {
+
+	_Log("[_IsHalfSizeNumeric] 値='".$value."'", 5);
+
+	if (_IsNull($value)) return true;
+	if (preg_match ('/^[0-9]+$/', $value)) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+
+/**
+ * 半角数字＋マイナス(-)チェック。
+ * 引き数	$value			：文字列
+ * 戻り値  	true:半角数字の場合/false:以外の場合
+ */
+function _IsHalfSizeNumericMinus($value) {
+
+	_Log("[_IsHalfSizeNumericMinus] 値='".$value."'", 5);
+
+	if (_IsNull($value)) return true;
+	if (preg_match ('/^-{0,1}[0-9]+$/', $value)) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+
+/**
+ * 半角数字＋ドット(.)チェック。
+ * 引き数	$value			：文字列
+ * 戻り値  	true:半角数字の場合/false:以外の場合
+ */
+function _IsHalfSizeNumericDot($value) {
+
+	_Log("[_IsHalfSizeNumericDot] 値='".$value."'", 5);
+
+	if (_IsNull($value)) return true;
+	if (preg_match ('/^[0-9.]+$/', $value)) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+/**
+ * 半角数字＋ドット(.)＋マイナス(-)チェック。
+ * 引き数	$value			：文字列
+ * 戻り値  	true:半角数字の場合/false:以外の場合
+ */
+function _IsHalfSizeNumericDotMinus($value) {
+
+	_Log("[_IsHalfSizeNumericDotMinus] 値='".$value."'", 5);
+
+	if (_IsNull($value)) return true;
+	if (preg_match ('/^-{0,1}[0-9.]+$/', $value)) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+
+/**
+ * 全角カナチェック。
+ * 引き数	$value			：文字列
+ * 戻り値  	true:全角カナの場合/false:以外の場合
+ *
+ * 備考
+ * 全角カナ
+ * \xA5\xA1:ァ
+ * \xA5\xF6:ヶ
+ * \xA1\xBC:ー
+ * \xA1\xA6:・
+ * \xA1\xA1:　(全角スペース)
+ * \x20: (半角スペース)
+ */
+function _IsFullSizeKana($value) {
+	if (_IsNull($value)) return true;
+	if (preg_match ('/^(\xA5[\xA1-\xF6]|\xA1\xBC|\xA1\xA6|\xA1\xA1|\x20)+$/', $value)) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+/**
+ * URL書式チェック。
+ * 引き数	$value			：文字列
+ * 戻り値  	true:URL書式の場合/false:以外の場合
+ */
+function _IsUrl($value) {
+	if (_IsNull($value)) return true;
+	if (preg_match ('/^(http|https):\/\/([a-zA-Z0-9]|\.|\-|_|\/|\?|=|~|%|&)+$/', $value)) {
+
+		return true;
+	} else {
+		return false;
+	}
+}
+
+//
+
+/**
+ * E-Mail書式チェック。
+ * 引き数	$value			：文字列
+ * 戻り値  	true:E-Mail書式の場合/false:以外の場合
+ */
+function _IsEMail($value) {
+	if (_IsNull($value)) return true;
+	if (preg_match ('/^[a-zA-Z0-9_\.\-]+?@[A-Za-z0-9_\.\-]+$/', $value)) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+
+/**
+ * 日付フォーマットチェック。
+ * 引き数	$value			：文字列
+ * 戻り値  	true:半角数字の場合/false:以外の場合
+ */
+function _IsDate($value) {
+
+	_Log("[_IsDate] 値='".$value."'", 5);
+
+	if (_IsNull($value)) return true;
+	if (preg_match ('/^([0-9]{4}-[0-9]{1,2}-[0-9]{1,2}){1}( [0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}){0,1}$/', $value)) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+
+/**
+ * パスワード書式チェック。
+ * 引き数	$value			：文字列
+ * 戻り値  	true:パスワード書式の場合/false:以外の場合
+ */
+function _IsPassword($value) {
+	if (_IsNull($value)) return true;
+	if (preg_match ('/^[a-zA-Z0-9]{6,12}$/', $value)) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+/**
+ * 半角英数チェック。
+ * 引き数	$value			：文字列
+ * 戻り値  	true:パスワード書式の場合/false:以外の場合
+ */
+function _IsHalfSizeEnNumeric($value) {
+	if (_IsNull($value)) return true;
+	if (preg_match ('/^[a-zA-Z0-9]+$/', $value)) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+/**
+ * 商号(会社名)記号チェック。
+ * 引き数	$value			：文字列
+ * 戻り値  	true:使用可能記号の場合/false:以外の場合
+ *
+ * 備考
+ * 以下の6種類のみ使用可能
+ * A1F5:「＆」アンパサンド
+ * A1C7:「’」アポストロフィー
+ * A1A4:「，」カンマ
+ * A1BE:「‐」ハイフン、A1DD:「」減算記号ハイフン
+ * A1A6:「・」なかてん
+ * A1A5:「．」ピリオド
+ * A1BC:「ー」ハイフン (2011/12/05追加)
+ *
+ * メモ
+ * \xA1\xA1:　(全角スペース)
+ */
+function _IsCompanyNameMark($value) {
+	$level = 3;
+	_Log("[_IsCompanyNameMark] start.", $level);
+
+	$l = mb_strlen($value);
+
+	_Log("[_IsCompanyNameMark] 値 = '".$value."'", $level);
+	_Log("[_IsCompanyNameMark] 文字列の長さ(mb_strlen) = '".$l."'");
+
+	$res = true;
+	if (!_IsNull($value)) {
+		for ($i = 0; $i < $l; $i++) {
+			$c = mb_substr($value, $i, 1);
+			_Log("[_IsCompanyNameMark] 文字列の分割 = '".$c."'");
+			//使用可記号か？
+			if (preg_match('/(\xA1\xF5|\xA1\xC7|\xA1\xA4|\xA1\xBE|\xA1\xDD|\xA1\xA6|\xA1\xA5|\xA1\xA1|\xA1\xBC)/', $c)) {
+				_Log("[_IsCompanyNameMark] →[使用可記号]");
+				continue;
+			}
+			//使用不可記号か？(全記号でチェックしている。)
+			if (preg_match('/(\xA1[\xA1-\xFE]|\xA2[\xA1-\xFE]|\xA6[\xA1-\xFE]|\xA7[\xA1-\xFE]|\xA8[\xA1-\xFE]|\xAD[\xA1-\xFE])/', $c)) {
+				_Log("[_IsCompanyNameMark] →【使用不可記号】");
+				$res = false;
+				break;
+			}
+		}
+	}
+
+	_Log("[_IsCompanyNameMark] 結果 = '".$res."'", $level);
+	_Log("[_IsCompanyNameMark] end.", $level);
+
+	return $res;
+}
+
+/**
+ * 商号(会社名)タイプチェック。
+ * 引き数	$value			：文字列
+ * 引き数	$type			：タイプ
+ * 戻り値  	true:タイプが含まれている場合/false:以外の場合
+ *
+ * 備考
+ * 「株式会社」、「合同会社」が含まれてるかをチェックする。
+ */
+function _IsCompanyNameType($value, $type) {
+	$level = 3;
+	_Log("[_IsCompanyNameType] 値 = '".$value."'", $level);
+	_Log("[_IsCompanyNameType] タイプ = '".$type."'");
+	if (_IsNull($value)) return true;
+	if (_IsNull($type)) return true;
+	if (preg_match('/^'.$type.'.*$/', $value)) return true;
+	if (preg_match('/^.*'.$type.'$/', $value)) return true;
+	return false;
+}
+
+/**
+ * バックスラッシュを取り除く。
+ * 引き数  $list:変換対象配列
+ * 戻り値  変換した配列
+ */
+function _StripslashesForArray($list) {
+	_Log("[_StripslashesForArray] start.", 5);
+
+	if (is_null($list)) return null;
+
+	//magic_quotes_gpcの設定がOFF(0)の場合、処理を終了する。
+	//magic_quotes が on の場合、'(シングルクオート)、" (ダブルクオート)、\(バックスラッシュ) 、NULL には
+	//全て自動的に バックスラッシュでエスケープ処理が行われます。
+	//→このバックスラッシュを削除する。
+	if (!get_magic_quotes_gpc()) return $list;
+
+	$return = array();
+	foreach ($list as $key => $value) {
+        switch (gettype($value)) {
+        case 'string':
+			$return[$key] = stripslashes($value);
+
+			_Log("[_StripslashesForArray] before='".$value."'", 5);
+			_Log("[_StripslashesForArray] after='".$return[$key]."'", 5);
+
+
+        	break;
+        case 'array':
+        	$return[$key] = _StripslashesForArray($value);
+			break;
+        default:
+			$return[$key] = $value;
+			break;
+        }
+	}
+
+	_Log("[_StripslashesForArray] end.", 5);
+
+	return $return;
+}
+
+/**
+ * HTML エンティティを適切な文字に変換する。
+ * 引き数  $list:変換対象配列
+ * 戻り値  変換した配列
+ */
+function _Html_entity_decodeForArray($list) {
+	_Log("[_Html_entity_decodeForArray] start.", 5);
+
+	if (is_null($list)) return null;
+
+	$return = array();
+	foreach ($list as $key => $value) {
+        switch (gettype($value)) {
+        case 'string':
+			$return[$key] = html_entity_decode($value);
+        	break;
+        case 'array':
+        	$return[$key] = _Html_entity_decodeForArray($value);
+			break;
+        default:
+			$return[$key] = $value;
+			break;
+        }
+	}
+
+	_Log("[_Html_entity_decodeForArray] end.", 5);
+
+	return $return;
+}
+
+
+
+/**
+ * URLエンコードされた文字列をデコードする。
+ * 引き数  $list:変換対象配列
+ * 戻り値  変換した配列
+ */
+function _RawUrlDecodeForArray($list) {
+	_Log("[_RawUrlDecodeForArray] start.", 5);
+
+	if (is_null($list)) return null;
+
+	$return = array();
+	foreach ($list as $key => $value) {
+        switch (gettype($value)) {
+        case 'string':
+			$return[$key] = rawurldecode($value);
+
+			_Log("[_RawUrlDecodeForArray] before='".$value."'", 5);
+			_Log("[_RawUrlDecodeForArray] after='".$return[$key]."'", 5);
+
+
+        	break;
+        case 'array':
+        	$return[$key] = _RawUrlDecodeForArray($value);
+			break;
+        default:
+			$return[$key] = $value;
+			break;
+        }
+	}
+
+	_Log("[_RawUrlDecodeForArray] end.", 5);
+
+	return $return;
+}
+
+
+
+////文字エンコーディングを変換する。"EUC-JP"(DB)→"UTF-8"(JavaScript)
+//$data = mb_convert_encoding($data, "UTF-8", "EUC-JP");
+/**
+ * 文字エンコーディングを変換する。
+ * 引き数  $list:変換対象配列
+ * 戻り値  変換した配列
+ */
+function _Mb_Convert_EncodingForArray($list, $to, $from) {
+	_Log("[_Mb_Convert_EncodingForArray] start.", 5);
+
+	if (is_null($list)) return null;
+
+	$return = array();
+	foreach ($list as $key => $value) {
+        switch (gettype($value)) {
+        case 'string':
+			$return[$key] = mb_convert_encoding($value, $to, $from);
+
+			_Log("[_Mb_Convert_EncodingForArray] before='".$value."'", 5);
+			_Log("[_Mb_Convert_EncodingForArray] after='".$return[$key]."'", 5);
+
+
+        	break;
+        case 'array':
+        	$return[$key] = _Mb_Convert_EncodingForArray($value, $to, $from);
+			break;
+        default:
+			$return[$key] = $value;
+			break;
+        }
+	}
+
+	_Log("[_Mb_Convert_EncodingForArray] end.", 5);
+
+	return $return;
+}
+
+
+/**
+ * 文字をHTML エンティティに変換する。
+ * 引き数  $list:変換対象配列
+ * 戻り値  変換した配列
+ */
+function _HtmlSpecialCharsForArray($list) {
+	_Log("[_HtmlSpecialCharsForArray] start.", 5);
+
+	if (is_null($list)) return null;
+
+	$return = array();
+	foreach ($list as $key => $value) {
+        switch (gettype($value)) {
+        case 'string':
+			$return[$key] = htmlspecialchars($value, ENT_QUOTES);
+        	break;
+        case 'array':
+        	$return[$key] = _HtmlSpecialCharsForArray($value);
+			break;
+        default:
+			$return[$key] = $value;
+			break;
+        }
+	}
+
+	_Log("[_HtmlSpecialCharsForArray] end.", 5);
+
+	return $return;
+}
+
+/**
+ * バックスラッシュでクォートする。
+ * 引き数  $list:変換対象配列
+ * 戻り値  変換した配列
+ */
+function _AddslashesForArray($list) {
+	_Log("[_AddslashesForArray] start.", 5);
+
+	if (is_null($list)) return null;
+
+	$return = array();
+	foreach ($list as $key => $value) {
+		switch (gettype($value)) {
+		case 'string':
+			$return[$key] = addslashes($value);
+
+			_Log("[_AddslashesForArray] before='".$value."'", 5);
+			_Log("[_AddslashesForArray] after='".$return[$key]."'", 5);
+
+			break;
+		case 'array':
+			$return[$key] = _AddslashesForArray($value);
+			break;
+		default:
+			$return[$key] = $value;
+			break;
+		}
+	}
+
+	_Log("[_AddslashesForArray] end.", 5);
+
+	return $return;
+}
+
+/**
+ * バックスラッシュのみバックスラッシュでクォートする。
+ * 引き数  $list:変換対象配列
+ * 戻り値  変換した配列
+ */
+function _AddslashesBackslashOnlyForArray($list) {
+	_Log("[_AddslashesBackslashOnlyForArray] start.", 5);
+
+	if (is_null($list)) return null;
+
+	$return = array();
+	foreach ($list as $key => $value) {
+		switch (gettype($value)) {
+		case 'string':
+			$return[$key] = str_replace("\\", "\\\\", $value);
+
+			_Log("[_AddslashesBackslashOnlyForArray] before='".$value."'", 5);
+			_Log("[_AddslashesBackslashOnlyForArray] after='".$return[$key]."'", 5);
+
+			break;
+		case 'array':
+			$return[$key] = _AddslashesBackslashOnlyForArray($value);
+			break;
+		default:
+			$return[$key] = $value;
+			break;
+		}
+	}
+
+	_Log("[_AddslashesBackslashOnlyForArray] end.", 5);
+
+	return $return;
+}
+
+
+/**
+ * 改行を改行コードに置換する。
+ * 引き数  $list:変換対象配列
+ * 戻り値  変換した配列
+ */
+function _ReplaceNl2NlCodeForArray($list) {
+	_Log("[_ReplaceNl2NlCodeForArray] start.", 5);
+
+	if (is_null($list)) return null;
+
+	$return = array();
+	foreach ($list as $key => $value) {
+		switch (gettype($value)) {
+		case 'string':
+			//改行を改行コードに置換する。
+			//置換の順番を指定する。
+			$search = array("\r\n", "\n", "\r");
+			$replace = "\\n";
+			//まず \r\n を最初に置換するので、二重に変換されることはありません。
+			$return[$key] = str_replace($search, $replace, $value);
+
+			_Log("[_ReplaceNl2NlCodeForArray] before='".$value."'", 5);
+			_Log("[_ReplaceNl2NlCodeForArray] after='".$return[$key]."'", 5);
+
+			break;
+		case 'array':
+			$return[$key] = _ReplaceNl2NlCodeForArray($value);
+			break;
+		default:
+			$return[$key] = $value;
+			break;
+		}
+	}
+
+	_Log("[_ReplaceNl2NlCodeForArray] end.", 5);
+
+	return $return;
+}
+
+
+/**
+ * 文字列からタグを取り除く。
+ * 引き数  $list:変換対象配列
+ * 戻り値  変換した配列
+ */
+function _StripTagsForArray($list) {
+	_Log("[_StripTagsForArray] start.", 5);
+
+	if (is_null($list)) return null;
+
+	$return = array();
+	foreach ($list as $key => $value) {
+        switch (gettype($value)) {
+        case 'string':
+			$return[$key] = strip_tags($value);
+        	break;
+        case 'array':
+        	$return[$key] = _StripTagsForArray($value);
+			break;
+        default:
+			$return[$key] = $value;
+			break;
+        }
+	}
+
+	_Log("[_StripTagsForArray] end.", 5);
+
+	return $return;
+}
+
+
+/**
+ * カナを("全角かな"、"半角かな"等に)変換する。
+ * 引き数  $list:変換対象配列
+ * 戻り値  変換した配列
+ */
+function _Mb_Convert_KanaForArray($list, $option = 'KV') {
+	_Log("[_Mb_Convert_KanaForArray] start.", 5);
+
+	if (is_null($list)) return null;
+
+	$return = array();
+	foreach ($list as $key => $value) {
+        switch (gettype($value)) {
+        case 'string':
+			$return[$key] = mb_convert_kana($value, $option);
+
+			_Log("[_Mb_Convert_KanaForArray] before='".$value."'", 5);
+			_Log("[_Mb_Convert_KanaForArray] after='".$return[$key]."'", 5);
+
+
+        	break;
+        case 'array':
+        	$return[$key] = _Mb_Convert_KanaForArray($value, $option);
+			break;
+        default:
+			$return[$key] = $value;
+			break;
+        }
+	}
+
+	_Log("[_Mb_Convert_KanaForArray] end.", 5);
+
+	return $return;
+}
+
+
+
+/**
+ * 文字列を指定文字数で削除する。
+ * 引き数  	$value	:対象文字列
+ * 			$lenght	:指定文字数
+ *			$endChar:末尾に付ける文字列
+ * 戻り値  変換した配列
+ */
+function _SubStr($value, $lenght, $endChar = "...") {
+	$substr = $value;
+	if (mb_strlen($value) > $lenght) {
+		$substr = mb_substr($value,0,$lenght);
+		$substr .= $endChar;
+	}
+	return $substr;
+}
+
+
+/**
+ * 画像イメージの型に対応する拡張子を返す。
+ * 引き数  	$imagetype	:Imagetype 定数
+ * 戻り値  拡張子
+ * 備考
+ * Imagetype 定数
+ * 	値		定数
+ * 	1		IMAGETYPE_GIF
+ * 	2		IMAGETYPE_JPEG
+ * 	3		IMAGETYPE_PNG
+ * 	4		IMAGETYPE_SWF
+ * 	5		IMAGETYPE_PSD
+ * 	6		IMAGETYPE_BMP
+ * 	7		IMAGETYPE_TIFF_II (intel byte order)
+ * 	8		IMAGETYPE_TIFF_MM (motorola byte order)
+ * 	9		IMAGETYPE_JPC
+ * 	10		IMAGETYPE_JP2
+ * 	11		IMAGETYPE_JPX
+ * 	12		IMAGETYPE_JB2
+ * 	13		IMAGETYPE_SWC
+ * 	14		IMAGETYPE_IFF
+ * 	15		IMAGETYPE_WBMP
+ * 	16		IMAGETYPE_XBM
+ */
+function _Image_Type_To_Extension($imagetype) {
+	if (empty($imagetype)) return "";
+	switch ($imagetype) {
+		case IMAGETYPE_GIF: return 'gif';
+		case IMAGETYPE_JPEG: return 'jpg';
+		case IMAGETYPE_PNG: return 'png';
+		case IMAGETYPE_BMP: return 'bmp';
+		default: return "";
+	}
+}
+
+/**
+ * 指定した番号をフォーマット編集して返す。
+ * 引き数  	$value	:対象文字列
+ * 戻り値  変換した配列
+ */
+function _FormatNo($value, $format = '%03d') {
+	return sprintf($format, $value);
+}
+
+
+/**
+ * 日付を年・月・日・時・分…に分割する。
+ * 引き数  	$value	:日付文字列
+ * 戻り値  日付情報配列
+ */
+function _GetDateInfo($value) {
+	_Log("[_GetDateInfo] start.", 5);
+	_Log("[_GetDateInfo] in date='".$value."'.", 5);
+
+	$date = null;
+	if (!_IsNull($value)) {
+		$date = getdate(strtotime($value));
+	}
+
+	_Log("[_GetDateInfo] result date='".print_r($date,true)."'.", 5);
+	_Log("[_GetDateInfo] end.", 5);
+
+	return $date;
+}
+
+/**
+ * MySQLのdatetime型(YYYY-MM-DD HH:MM:SS)の日付のフォーマットを変更する。
+ * 引き数  	$value	:日付文字列
+ * 戻り値  日付
+ */
+function _FormatDateTime($datetime, $format = 'Y/m/d') {
+	_Log("[_FormatDateTime] start.", 5);
+	_Log("[_FormatDateTime] \$datetime='".$datetime."'.", 5);
+	_Log("[_FormatDateTime] \$format='".$format."'.", 5);
+
+	$date = $datetime;
+	if (!_IsNull($datetime) && !_IsNull($format)) {
+		$date = date($format, strtotime($datetime));
+	}
+
+	_Log("[_FormatDateTime] result date='".$date."'.", 5);
+	_Log("[_FormatDateTime] end.", 5);
+
+	return $date;
+}
+
+/**
+ * 指定した縦、横の幅を基準値を元にサイズを変更する。
+ * 引き数  	$width		:元の横幅
+ * 			$height		:元の縦幅
+ * 			$baseSize	:基準値
+ * 			$min		:強制サイズ変更フラグ{true:基準値を元にサイズに変更する。/false:元幅が基準値より小さい場合はサイズ変更しない。}
+ * 戻り値	array('w' => 変更した横幅,'h' => 変更した縦幅, 'attr' => 'width="xxx" height="yyy"')
+ */
+function _ImageResize($width, $height, $baseSize, $min = false) {
+	//縦・横の幅の長い方を設定する。
+	if($width>=$height){$maxSize=$width;}else{$maxSize=$height;}
+
+	//長い方の幅が基準値より大きいか？
+	if ($maxSize > $baseSize || $min) {
+		//大きい場合、縮小する。
+		//比を算出する。
+		$ratio = $maxSize / $baseSize; //長い方の辺を定数値(仮640)ドットに
+		//画像サイズの設定をする。
+		$newWidth = ceil($width / $ratio);
+		$newHeight = ceil($height / $ratio);
+	} else {
+		//画像サイズの設定をする。
+		$newWidth = $width;
+		$newHeight = $height;
+	}
+
+	$return = array();
+	$return['w'] = $newWidth;
+	$return['h'] = $newHeight;
+	$return['attr'] = "width=\"".$newWidth."\" height=\"".$newHeight."\"";
+
+	return $return;
+}
+
+/**
+ * 年の配列を取得する。
+ * 引き数  	$startYear		:開始年
+ * 			$endYear		:終了年
+ * 			$step			:ステップ数
+ * 戻り値	array('ID' => 年, 'NAME' => 年)
+ */
+function _GetYearArray($startYear, $endYear, $step = 1) {
+	//年
+	$listYear = array();
+	for ($i=$startYear;$i<=$endYear; $i+=$step)
+		$listYear[$i] = array('id' => $i, 'name' => $i);
+
+	return $listYear;
+}
+
+/**
+ * 月の配列を取得する。
+ * 引き数  	$startMonth		:開始月
+ * 			$endMonth		:終了月
+ * 			$step			:ステップ数
+ * 戻り値	array('ID' => 月, 'NAME' => 月)
+ */
+function _GetMonthArray($startMonth = 1, $endMonth = 12, $step = 1) {
+	//月
+	$listMonth = array();
+	for ($i=$startMonth;$i<=$endMonth;$i+=$step)
+		$listMonth[$i] = array('id' => $i, 'name' => $i);
+
+	return $listMonth;
+}
+
+/**
+ * 日の配列を取得する。
+ * 引き数  	$startDay		:開始日
+ * 			$endDay			:終了日
+ * 			$step			:ステップ数
+ * 戻り値	array('ID' => 日, 'NAME' => 日)
+ */
+function _GetDayArray($startDay = 1, $endDay = 31, $step = 1) {
+	//月
+	$listDay = array();
+	for ($i=$startDay;$i<=$endDay;$i+=$step)
+		$listDay[$i] = array('id' => $i, 'name' => $i);
+
+	return $listDay;
+}
+
+/**
+ * 数値の配列を取得する。
+ * 引き数  	$startDay		:開始日
+ * 			$endDay			:終了日
+ * 			$step			:ステップ数
+ * 戻り値	array('ID' => 日, 'NAME' => 日)
+ */
+function _GetNumberArray($startNum = 1, $endNum = 10, $step = 1) {
+	$list = array();
+	for ($i=$startNum;$i<=$endNum;$i+=$step)
+		$list[$i] = array('id' => $i, 'name' => $i);
+
+	return $list;
+}
+
+/**
+ * 指定した配列内のデータにNULL値が存在したら指定した文字に置き換える。
+ * 引き数  	$list		:対象データ
+ * 			$replace	:変換文字列
+ * 戻り値	変換した対象データ
+ */
+function _SetArrayNullToValue($list, $replace = '&nbsp;') {
+	_Log("[_SetArrayNullToValue] start.", 5);
+
+	$return = array();
+	foreach ($list as $key => $value) {
+        switch (gettype($value)) {
+        case 'string':
+        	if (_IsNull($value)) {
+				$return[$key] = $replace;
+        	} else {
+				$return[$key] = $value;
+        	}
+        	break;
+        case 'array':
+        	$return[$key] = _SetArrayNullToValue($value);
+			break;
+		case 'NULL':
+			$return[$key] = $replace;
+			break;
+        default:
+			$return[$key] = $value;
+			break;
+        }
+	}
+
+	_Log("[_SetArrayNullToValue] end.", 5);
+
+	return $return;
+}
+
+/**
+ * 指定された配列から指定したIDの情報を取得する。
+ * 引き数  	$list		:配列
+ * 			$id			:ID
+ * 			$name		:項目名称
+ * 戻り値	項目名称に対する値
+ */
+function _GetValueFromList($list, $id, $name = 'name') {
+	if (_IsNull($list)) return null;
+	if (_IsNull($id)) return null;
+	if (_IsNull($name)) return null;
+
+	if (!isset($list[$id])) return null;
+	$listSub = $list[$id];
+
+	if (!isset($listSub[$name])) return null;
+
+	return $listSub[$name];
+}
+
+
+
+/**
+ * 時間の配列を設定する。
+ *
+ * @param	int	$startHour		開始時間:時(24時間単位)
+ * @param	int	$startMinute	開始時間:分(0~59分)
+ * @param	int $endHour		終了時間:時(24時間単位)
+ * @param	int	$endMinute		終了時間:分(0~59分)
+ * @param	int $intervalMinute	間隔時間(単位:分)
+ * @return	array	時間の配列(取得できなかった場合はnull。)
+ * @access  public
+ * @since
+ */
+function _GetTimeList($startHour, $startMinute, $endHour, $endMinute, $intervalMinute) {
+
+	_Log("[_GetTimeList] start.", 5);
+
+	$list = array();
+
+	$endTime = mktime($endHour, $endMinute);
+	$m = $startMinute;
+	$time = mktime($startHour, $m);
+
+	do {
+
+		_Log("[_GetTimeList] time = '".$time."'", 5);
+
+		$hm = date('H:i', $time);
+		$list[$hm] = array('id' => $hm, 'name' => $hm);
+
+		$m += $intervalMinute;
+		$time = mktime($startHour, $m);
+
+	} while ($time <= $endTime);
+
+	_Log("[_GetTimeList] end time = '".$endTime."'", 5);
+	_Log("[_GetTimeList] 結果 = '".print_r($list,true)."'", 5);
+	_Log("[_GetTimeList] end.", 5);
+	return $list;
+}
+
+/**
+ * 日付の配列を設定する。
+ *
+ * @param	int	$startYear	開始日付:年(YYYY)
+ * @param	int	$startMonth	開始日付:月(1~12)
+ * @param	int $startDay	開始日付:日(1~31)
+ * @param	int	$days		開始日から表示する日数
+ * @return	array	日付の配列(取得できなかった場合はnull。)
+ * @access  public
+ * @since
+ */
+function _GetDateList($startYear, $startMonth, $startDay, $days) {
+
+	_Log("[_GetDateList] start.", 5);
+
+	$list = array();
+
+	$endTime = mktime(0, 0, 0, $startMonth, $startDay+$days, $startYear);
+
+	$d = 0;
+
+	$time = mktime(0, 0, 0, $startMonth, $startDay, $startYear);
+
+	do {
+
+		_Log("[_GetDateList] time = '".$time."'", 5);
+
+		$ymd = date('Y/m/d', $time);
+		$list[$ymd] = array('id' => $ymd, 'name' => $ymd);
+
+		$d++;
+		$time = mktime(0, 0, 0, $startMonth, $startDay+$d, $startYear);
+
+	} while ($time <= $endTime);
+
+	_Log("[_GetDateList] end time = '".$endTime."'", 5);
+	_Log("[_GetDateList] 結果 = '".print_r($list,true)."'", 5);
+	_Log("[_GetDateList] end.", 5);
+	return $list;
+}
+
+
+
+
+
+/**
+ * 文字列分割文字を使用して指定した文字数数に文字列を分割する。
+ *
+ * @param	string	$str		入力文字列
+ * @param	int		$width		カラムの幅。デフォルトは 200。(文字数。バイト数ではない。)
+ * @param	string	$break		オプションのパラメータ break  を用いて行を分割する。 デフォルトは '\n'。
+ * @param	string	$encoding	エンコーディング
+ * @return	array	編集した文字列
+ * @access  public
+ * @since
+ */
+function _Mb_Wordwrap($str, $width = 200, $break = "\n", $encoding = "EUC-JP") {
+
+	_Log("[_Mb_Wordwrap] start.", 5);
+
+	$res = null;
+	//改行で分割する。
+	$bufList = preg_split("/\n/", $str);
+
+	//1行毎文字数をチェックする。
+	foreach ($bufList as $key => $line) {
+		//文字列長を取得する。
+		$len = mb_strlen($line, $encoding);
+
+		//1文字毎連結して、文字数を調整する。
+		$sub = null;
+		$count = 0;
+		for ($i = 0; $i < $len; $i++) {
+			$sub .= mb_substr($line, $i, 1, $encoding);
+			$count++;
+			//1行の最大文字数に達したら、改行を追加する。
+			if ($count >= $width) {
+				$sub .= $break;
+				$count = 0;
+			}
+		}
+
+		$res .= $sub;
+		$res .= "\n";
+	}
+
+
+	_Log("[_Mb_Wordwrap] end.", 5);
+
+	return $res;
+
+}
+
+
+/**
+ * 西暦を和暦に変換する。
+ *
+ * @param	int		$y		西暦
+ * @param	int		$addEra	年号追加{true:追加する。/false:追加しない。}
+ * @return	string	和暦
+ * @access  public
+ * @since
+ */
+function _ConvertAD2Jp($y, $addEra = true) {
+	$err = 3;
+	_Log("[_ConvertAD2Jp] start.", $err);
+	_Log("[_ConvertAD2Jp] (param) 西暦 = '".$y."'", $err);
+	_Log("[_ConvertAD2Jp] (param) 年号追加{true:追加する。/false:追加しない。} = '".$addEra."'", $err);
+
+	if (_IsNull($y)) return $y;
+
+	$res = null;
+	$era = null;
+	$jpBaseYear = null;
+	if (JP_YEAR_START_MEIJI <= $y && $y < JP_YEAR_START_TAISHO) {
+		//明治
+		$era = '明治';
+		$jpBaseYear = JP_YEAR_START_MEIJI;
+	} elseif (JP_YEAR_START_TAISHO <= $y && $y < JP_YEAR_START_SHOWA) {
+		//大正
+		$era = '大正';
+		$jpBaseYear = JP_YEAR_START_TAISHO;
+	} elseif (JP_YEAR_START_SHOWA <= $y && $y < JP_YEAR_START_HEISEI) {
+		//昭和
+		$era = '昭和';
+		$jpBaseYear = JP_YEAR_START_SHOWA;
+	} elseif (JP_YEAR_START_HEISEI <= $y) {
+		//平成
+		$era = '平成';
+		$jpBaseYear = JP_YEAR_START_HEISEI;
+	} else {
+
+	}
+
+	if (_IsNull($jpBaseYear)) {
+		if ($addEra) $res .= '西暦';
+		$res .= $y;
+	} else {
+		if ($addEra) $res .= $era;
+		$jpY = $y - $jpBaseYear + 1;
+		$res .= $jpY;
+	}
+
+
+	_Log("[_ConvertAD2Jp] 結果(和暦) = '".$res."'", $err);
+	_Log("[_ConvertAD2Jp] end.", $err);
+
+	return $res;
+}
+
+
+/**
+ * 数値を和表記に変換する。
+ * 1億2千万、100万など。
+ *
+ * @param	int		$n	数値
+ * @return	string	和表記数値
+ * @access  public
+ * @since
+ */
+function _ConvertNum2Ja($n) {
+	$err = 3;
+	_Log("[_ConvertNum2Ja] start.", $err);
+	_Log("[_ConvertNum2Ja] (param) 数値 = '".$n."'", $err);
+
+	if (_IsNull($n)) return $n;
+
+	$buf = $n."";
+
+	$len = strlen($buf);
+	_Log("[_ConvertNum2Ja] 数値(長さ) = '".$len."'", $err);
+
+	//数値を下の桁から4文字ずつ分割する。
+	$bufList = array();
+	while ($buf != "") {
+		$division = strlen($buf) - 4;
+		_Log("[_ConvertNum2Ja] 分割位置 = '".$division."'", $err);
+		if ($division < 0) {
+			$division = 0;
+			_Log("[_ConvertNum2Ja] 分割位置(修正) = '".$division."'", $err);
+		}
+
+		$buf1 = mb_substr($buf, 0, $division);
+		$buf2 = mb_substr($buf, $division, 4);
+
+		_Log("[_ConvertNum2Ja] 分割結果 = '".$buf1."' / '".$buf2."'", $err);
+
+		$bufList[] = $buf2;
+		$buf = $buf1;
+	}
+
+	_Log("[_ConvertNum2Ja] 数値(4文字分割) = '".print_r($bufList,true)."'", $err);
+
+	$res = null;
+	foreach ($bufList as $key => $val) {
+		//0のみの場合、次へ。
+		if (preg_match ('/^0+$/', $val)) continue;
+
+		//先頭の0を削除する。
+		$val = ltrim($val, "0");
+
+		switch ($key) {
+			case 0:
+				$res = $val.$res;
+				break;
+			case 1:
+				$res = $val."万".$res;
+				break;
+			case 2:
+				$res = $val."億".$res;
+				break;
+			case 3:
+				$res = $val."兆".$res;
+				break;
+			case 4:
+				$res = $val."京".$res;
+				break;
+			default:
+				$res = $val.$res;
+				break;
+		}
+	}
+
+	_Log("[_ConvertNum2Ja] 結果 = '".$res."'", $err);
+	_Log("[_ConvertNum2Ja] end.", $err);
+
+	return  $res;
+}
+
+function _get_include_contents($fileName)
+{
+    if (is_file($fileName)) {
+        ob_start();
+        include $fileName;
+        return ob_get_clean();
+    }
+    return false;
+}
+
+function arrayMerge($a, $b)
+{
+    $args = func_get_args();
+    $res = array_shift($args);
+    while (!empty($args)) {
+        $next = array_shift($args);
+        foreach ($next as $k => $v) {
+            if (is_integer($k)) {
+                if (isset($res[$k])) {
+                    $res[] = $v;
+                } else {
+                    $res[$k] = $v;
+                }
+            } elseif (is_array($v) && isset($res[$k]) && is_array($res[$k])) {
+                $res[$k] = arrayMerge($res[$k], $v);
+            } else {
+                $res[$k] = $v;
+            }
+        }
+    }
+    return $res;
+}
+
+function activateCompany($userInfo)
+{
+    // 登録前に会社情報の入力を行っていた場合
+    if (isset($_SESSION[SID_LOGIN_USER_COMPANY][1])) {
+        _Log('********** 会社情報の登録を行います START **********');
+        $condition = array(
+            'pri_upd' => array(
+                'usr_cmp_rel_user_id' => $userInfo['usr_user_id'],
+            ),
+            'usr_cmp_rel_update_ip' => $_SERVER['REMOTE_ADDR'],
+            'usr_cmp_rel_update_date' => date('YmdHis'),
+            'usr_cmp_rel_user_id' => NOLOGIN_USER_ID,
+            'usr_cmp_rel_company_id' => $_SESSION[SID_LOGIN_USER_COMPANY][1],
+        );
+        _DB_SaveInfo('tbl_user_company_relation', $condition);
+        unset($_SESSION[SID_LOGIN_USER_COMPANY]);
+        _Log('********** 会社情報の登録を行います END **********');
+    } else {
+        _Log('********** 会社情報の登録を行いません **********');
+    }
+}
+
+?>

@@ -1,0 +1,94 @@
+/* 2011/01/18 21:19 base.cssにマージ済み */
+
+/** サイドメニュー用 [現在の入力状況] **/
+div#sd_company
+{
+	margin: 0;
+	padding: 0;
+	border: 0;
+
+border: 1px dotted #f00;
+}
+
+div#sd_company h3
+{
+	margin: 0 0 10px 0;
+	padding: 0;
+	border: 0;
+
+	width: 100%;
+	height: 20px;
+	line-height: 20px;
+
+	font-size: 0.9em;
+	text-align: center;
+
+	color: #fff;
+	background-color: #0675cf;
+}
+
+div#sd_company h4
+{
+	margin: 0 0 3px 0;
+	padding: 0;
+	border: 0;
+	
+	width: 100%;
+	height: 18px;
+	line-height: 18px;
+
+	font-size: 1em;
+}
+
+div#sd_company div.sd_cp_info
+{
+	margin: 0 auto 10px auto;
+	padding: 0;
+	border: 0;
+
+	width: 90%;
+}
+
+div#sd_company div.sd_cp_info div.list
+{
+	margin: 0 auto 8px auto;
+	padding: 0;
+	border: 0;
+	width: 98%;
+}
+
+div#sd_company div.sd_cp_info div.list div.info
+{
+	margin: 0 0 2px 0;
+	padding: 0;
+	border: 0;
+	width: 100%;
+}
+
+div#sd_company div.sd_cp_info div.list div.info ol
+{
+	margin: 0;
+	padding: 0;
+	border: 0;
+	width: 100%;
+	list-style: decimal;
+}
+
+div#sd_company div.sd_cp_info div.list div.info ol li
+{
+	margin: 0 0 0 15%;
+	padding: 0;
+	border: 0;
+	width: 85%;
+}
+
+
+div#sd_company div.sd_cp_info div.requiredMessage
+{
+	margin: 5px auto 10px auto;
+	padding: 5px;
+	width: 165px;
+	color: #fff;
+	border: 1px solid #f00;
+	background-color: #ef4a70;
+}

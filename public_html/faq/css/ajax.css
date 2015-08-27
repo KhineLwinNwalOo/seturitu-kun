@@ -1,0 +1,5 @@
+@charset "EUC-JP";
+
+.ajax-loading {
+	background: url(../img/ajax/spinner.gif) no-repeat 6px 50%;
+}

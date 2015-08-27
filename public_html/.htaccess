@@ -1,0 +1,6 @@
+RewriteEngine on
+RewriteCond %{HTTP_HOST} ^(seturitu-kun\.com)(:80)? [NC]
+RewriteRule ^(.*) http://www.seturitu-kun.com/$1 [R=301,L]
+#RewriteCond %{THE_REQUEST} ^.*/index.php
+#RewriteRule ^(.*)index.php$ http://www.seturitu-kun.com/$1 [R=301,L]
+AddHandler x-httpd-php5.2 .php .phps

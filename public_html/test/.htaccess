@@ -1,0 +1,2 @@
+RewriteEngine On
+RewriteRule ^([0-9]+)/?(.*) /admin/test/item.php?id=$1&buf=$2 [L]

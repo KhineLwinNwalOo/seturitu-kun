@@ -1,0 +1,351 @@
+/*
+ * [相互リンク管理画面]
+ * 入力フォーム用スタイルシート
+ *
+ * 更新履歴：2007/10/01	d.ishikawa	新規作成
+ *
+ */
+
+/*
+form.frmUpdate
+{
+float:left;
+
+border:1px solid #ff0;
+}
+*/
+div.formWrapper
+{
+	margin: 0 0 10px 0;
+	padding: 0;
+	width: 98%;
+
+	float:left;
+}
+
+
+div.formWrapper div.formList
+{
+	margin: 0;
+	padding: 0;
+	width: 100%;
+
+	text-align: left;
+
+/*	overflow: auto;*/
+}
+
+div.formWrapper div.formList table
+{
+	margin: 0;
+	padding: 0;
+
+	border-top: 1px solid #ccc;
+	border-left: 1px solid #ccc;
+
+	background-color: #fff;
+
+	border-collapse: collapse;
+	empty-cells: show;
+
+	text-align: center;
+}
+
+div.formWrapper div.formList table.searchConditionTable
+,div.formWrapper div.formList table.searchResultListTable
+{
+	width: 100%;
+}
+
+div.formWrapper div.formList table.searchConditionTable td.colHead
+,div.formWrapper div.formList table.searchResultListTable td.colHead
+{
+	font-size: 14px;
+	font-weight: bold;
+}
+
+div.formWrapper div.formList table.searchResultListTableSub
+{
+	width: 100%;
+	font-size: 0.8em;
+}
+
+
+div.formWrapper div.formList table thead
+{
+	color: #404040;
+	font-weight: bold;
+}
+div.formWrapper div.formList table thead td
+{
+/*	background: url("../img/sin-kaisha.jp/bg_003.gif") repeat left top;*/
+}
+
+div.formWrapper div.formList table td
+{
+	margin: 0;
+	padding: 3px 6px;
+
+	border-right: 1px solid #ccc;
+	border-bottom: 1px solid #ccc;
+
+	font-size: 16px;
+	white-space: nowrap;
+}
+
+div.formWrapper div.formList table td.colHead
+{
+/*	background: #d9dada url("../img/table/table_bg_001.gif") repeat-x left top;*/
+/*	background: #dae3da url("../img/table/table_bg_001.gif") repeat-x left top;*/
+	background: #cde4f2 url("../img/table/table_bg_001.jpg") no-repeat left top;
+
+	color: #404040;
+}
+
+/*
+div.formWrapper div.formList td input
+,
+div.formWrapper div.formList table tbody tr td select
+{
+	min-width: 70px;
+	width: auto;
+}
+*/
+
+ div.formWrapper div.formList input
+,div.formWrapper div.formList select
+,div.formWrapper div.formList textarea
+{
+	border: 2px solid #ccc;
+	border: 2px solid #ff7f00;
+	background-color: #fafafa;
+	background-color: #ffa;
+	margin-bottom: 10px;
+	height: 34px;
+	font-size: 20px;
+}
+
+input ,select
+{
+vertical-align:middle;
+}
+
+ div.formWrapper div.formList input.submit
+{
+	color: #006ECA;
+	font-size: 14px;
+	font-weight: bold;
+	border: 4px solid #006ECA;
+	background-color: #ffffcc;
+	width: 225px;
+	height: 54px;
+}
+
+ div.formWrapper div.formList input.submit:hover
+{
+	color: #008cff;
+	font-size: 14px;
+	font-weight: bold;
+	border: 4px solid #008cff;
+	background-color: #ffffcc;
+}
+
+div.formWrapper div.formList .input_comment
+{
+	font-size: 0.8em;
+	color: #f00;
+}
+/* under ie6 */
+* html div.formWrapper div.formList .input_comment
+{
+	font-size: 0.6em;
+}
+
+
+/* 水平方向テーブル追加スタイル ----------------------- start */
+div.formWrapper div.formList table.horizontal
+{
+	text-align: left;
+}
+div.formWrapper div.formList table.horizontal thead
+{
+	font-weight: normal;
+}
+div.formWrapper div.formList table.horizontal td.colHead
+{
+	font-weight: bold;
+}
+/* 水平方向テーブル追加スタイル ----------------------- end   */
+
+/* 単一垂直方向テーブル追加スタイル -------------------- start */
+div.formWrapper div.formList table.independent
+{
+	text-align: left;
+	width: 735px;
+	margin-bottom: 15px;
+}
+
+div.formWrapper div.formList table.independent td
+{
+	white-space: normal;
+	padding: 20px;
+}
+
+div.formWrapper div.formList table.independent td.colHead
+{
+	font-size: 14px;
+	font-weight: bold;
+}
+
+div.formWrapper div.formList table.independent colgroup.colgroupHead {width: 25%;}
+div.formWrapper div.formList table.independent colgroup.colgroupBody {width: 75%;}
+
+div.formWrapper div.formList table.independent textarea
+{
+	width: 98%;
+}
+/* 単一垂直方向テーブル追加スタイル -------------------- end   */
+
+div.formWrapper div.formSelectedCondition
+{
+	margin: 0 0 10px 0;
+	padding: 0;
+}
+
+div.formWrapper div.formSelectedCondition dl
+{
+	margin: 0;
+	padding: 0;
+	width: 500px;
+	border-top: 1px solid #000;
+	border-left: 1px solid #000;
+}
+
+div.formWrapper div.formSelectedCondition dl dt
+{
+	margin: 0;
+	padding: 2px;
+	width: 110px;
+	float: left;
+
+	border-bottom: 1px solid #000;
+	border-right: 1px solid #000;
+
+	background-color: #666666;
+
+	color: #fff;
+	font-weight: bold;
+
+	text-indent: 5px;
+
+
+}
+
+div.formWrapper div.formSelectedCondition dl dd
+{
+	margin: 0;
+	padding: 2px;
+
+	border-bottom: 1px solid #000;
+	border-right: 1px solid #000;
+
+	background-color: #fff;
+
+	color: #00f;
+	font-weight: bold;
+
+	text-indent: 5px;
+
+}
+
+
+
+
+
+
+
+
+div.formWrapper div.formSubName
+{
+	margin: 0;
+	padding: 0;
+/*	width: 650px;*/
+
+	text-align: left;
+
+
+	font-size: 1.1em;
+	font-weight: bold;
+	color: #f00;
+
+
+}
+
+div.formWrapper div.formSubNameSp
+{
+	margin-top: 10px;
+}
+
+div.formWrapper div.formSubName span.formSubNameMain
+{
+	color: #f60;
+	font-weight: bold;
+	font-size: 1.1em;
+}
+
+
+div.formWrapper div.formMessageBottom
+{
+	margin: 0;
+	padding: 0;
+
+	text-align: right;
+}
+
+
+
+
+
+/* テーブル内の<dl>スタイル(主に、「追加」ボタンで複数入力になる項目。) */
+div.formWrapper div.formList table dl
+{
+	margin: 10px 0 0 0;
+	padding: 5px 0 0 0;
+	border: 0;
+	border-top: 1px solid #999;
+}
+
+div.formWrapper div.formList table dl dt
+{
+	float: left;
+	width: 14%;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+div.formWrapper div.formList table dl dd
+{
+	width: 80%;
+	margin: 0 0 0 0;
+	padding: 0;
+	border: 0;
+}
+
+
+/* テーブル内の<ol>スタイル(主に、「追加」ボタンで複数入力になる項目。) */
+div.formWrapper div.formList table ol
+{
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+div.formWrapper div.formList table ol li
+{
+	margin: 0 0 0 30px;
+	padding: 0;
+	border: 0;
+}
+
+

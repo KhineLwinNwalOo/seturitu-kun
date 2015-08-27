@@ -1,0 +1,31 @@
+<?php
+/*
+ * [新★会社設立.JP ツール]
+ * 読み込みファイル
+ *
+ * 更新履歴：2008/12/01	d.ishikawa	新規作成
+ *
+ */
+
+include_once(dirname(__FILE__)."/constants_db.ini");
+include_once(dirname(__FILE__)."/constants.ini");
+include_once(dirname(__FILE__)."/db.ini");
+include_once(dirname(__FILE__)."/html.ini");
+include_once(dirname(__FILE__)."/log.ini");
+include_once(dirname(__FILE__)."/util.ini");
+include_once(dirname(__FILE__)."/form.ini");
+include_once(dirname(__FILE__)."/xml.ini");
+include_once(dirname(__FILE__)."/auth.ini");
+
+include_once(dirname(__FILE__)."/admin_form.ini");
+include_once(dirname(__FILE__)."/admin_breadcrumbs.ini");
+
+include_once(dirname(__FILE__)."/db4tools.ini");
+include_once(dirname(__FILE__)."/html4tools.ini");
+include_once(dirname(__FILE__)."/util4tools.ini");
+
+include_once(dirname(__FILE__)."/db4faq.ini");
+
+ini_set('include_path', dirname(__FILE__)."/libs/PEAR" . PATH_SEPARATOR . ini_get('include_path'));
+//ini_set('include_path', "/home/xsvx1025469/sin-kaisha.jp/public_html/admin/common/libs/PEAR" . PATH_SEPARATOR . ini_get('include_path'));
+?>

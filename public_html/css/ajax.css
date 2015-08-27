@@ -1,0 +1,11 @@
+/*
+ * [管理画面]
+ * Ajax用スタイルシート
+ *
+ * 更新履歴：2008/12/01	d.ishikawa	新規作成
+ *
+ */
+
+.ajax-loading {
+	background: url(../img/ajax/spinner.gif) no-repeat 6px 50%;
+}

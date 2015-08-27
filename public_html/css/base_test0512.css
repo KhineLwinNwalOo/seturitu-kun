@@ -1,0 +1,21 @@
+#mc_home #mainimage {
+  display: block;
+  height: 560px;
+  margin: -5px 0 10px -5px;
+  position: relative;
+  background: url(http://www.seturitu-kun.com/img/new/top_mainimage_new.jpg) no-repeat;
+}
+#mc_home #mainimage #mainimage_regist:hover {
+  background: url(http://www.seturitu-kun.com/img/new/top_mainimage_regist_o_new.jpg) no-repeat;
+}
+a#sd_lg_bt_regist {
+  display: block;
+  width: 180px;
+  height: 50px;
+  margin: 0 auto 5px auto;
+  text-indent: -9999px;
+  background: url(../img/new/btn_regist_new.gif) no-repeat;
+}
+a#sd_lg_bt_regist:hover {
+  background: url(../img/new/btn_regist_o_new.jpg) no-repeat;
+}

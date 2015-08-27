@@ -1,0 +1,162 @@
+/*
+ * [新★会社設立.JP ツール]
+ * 入力フォーム用スタイルシート
+ * 株式会社設立情報登録 出資金ページ用
+ * サイドバー用
+ *
+ * 更新履歴：2011/01/18	d.ishikawa	新規作成
+ *
+ */
+
+
+/** 現在の設定用 **/
+div#sd_company div.capital_stock_price
+{
+	margin: 5px auto 10px auto;
+	padding: 5px;
+	width: 175px;
+	width: 165px;
+
+/*	font-weight: bold;*/
+/*	color: #fff;*/
+	border: 1px solid #808080;
+	background-color: #ddd;
+}
+
+div#sd_company div.promoter_investment
+{
+	margin: 0 auto 10px auto;
+	padding: 0;
+	border: 0;
+	
+	width: 175px;
+}
+
+div#sd_company div.promoter_investment div.name
+{
+	clear: both;
+	margin: 0 0 5px 0;
+	padding: 0;
+	border: 0;
+	
+	width: 100%;
+}
+
+div#sd_company div.promoter_investment div.details
+{
+	clear: both;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	
+	width: 100%;
+}
+
+div#sd_company div.promoter_investment div.details div.in_area
+{
+	margin: 0;
+	padding: 0;
+	border: 0;
+	
+	width: 100%;
+	
+	position: relative;
+}
+
+div#sd_company div.promoter_investment div.details div.in_area .in_button
+{
+	display: block;
+		
+	margin: 0;
+	padding: 0;
+	
+	width: 40px;
+
+	position: absolute;
+	top: 0;
+	right: 0;
+}
+
+
+div#sd_company div.promoter_investment div.details div.in_area div.in_set
+{
+	margin: 0 0 5px 0;
+	padding: 0;
+	border: 0;
+	
+	width: 100%;
+	height: 20px;
+
+	border-bottom: 1px solid #aaa;
+}
+
+div#sd_company div.promoter_investment div.details div.in_area div.in_set span.in_set_end
+{
+	display: block;
+	clear: both;
+}
+
+
+div#sd_company div.promoter_investment div.details div.in_area div.in_set span.stock
+{
+	float: left;
+	display: block;
+	
+	margin: 0;
+	padding: 0;
+	border: 0;
+	
+	width: 100px;
+}
+div#sd_company div.promoter_investment div.details div.in_area div.in_set span.investment
+{
+	display: none;
+}
+div#sd_company div.promoter_investment div.details div.in_area div.in_set span.investment_4_llc
+{
+	float: left;
+	display: block;
+	
+	margin: 0;
+	padding: 0;
+	border: 0;
+	
+	width: 100px;
+}
+div#sd_company div.promoter_investment div.details div.in_area div.in_set span.ratio
+{
+	float: left;
+	display: block;
+	
+	margin: 0;
+	padding: 0;
+	border: 0;
+	
+	width: 60px;
+}
+
+div#sd_company div.promoter_investment div.details div.in_area div.in_set span.inkind_label
+{
+	display: none;
+}
+
+
+div#sd_company div.promoter_investment div.details div.in_area div.in_set span.inkind
+{
+	display: none;
+}
+
+div#sd_company div.promoter_investment div.details div.in_area div.in_set span.inkind textarea
+{
+	width: 98%;
+}
+
+div#sd_company div.promoter_investment div.details div.in_area div.in_set span.del_flag
+{
+	display: none;
+	clear: both;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	width: 100%;
+}

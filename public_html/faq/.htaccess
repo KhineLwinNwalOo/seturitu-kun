@@ -1,0 +1,14 @@
+RewriteEngine On
+
+RewriteCond %{query_string} ^$ [NC]
+RewriteCond %{request_uri} !(/css/) [NC]
+RewriteCond %{request_uri} !(/img/) [NC]
+RewriteCond %{request_uri} !(/common/) [NC]
+RewriteRule ^(.*)[^/]$ %{request_uri}/ [L,R]
+
+RewriteCond %{query_string} !(_@_key_@_) [NC]
+RewriteCond %{request_uri} !(/css/) [NC]
+RewriteCond %{request_uri} !(/img/) [NC]
+RewriteCond %{request_uri} !(/common/) [NC]
+RewriteCond %{request_uri} !(/favicon.ico) [NC]
+RewriteRule ^(.*)$ /faq/?_@_key_@_=%{request_uri}&%{query_string} [L]

@@ -1,0 +1,201 @@
+/*
+ * [新★会社設立.JP ツール]
+ * 入力フォーム用スタイルシート
+ * 株式会社設立情報登録 出資金ページ用
+ *
+ * 更新履歴：2008/12/01	d.ishikawa	新規作成
+ *
+ */
+
+
+/** 現在の設定用 **/
+div.capital_stock_price
+{
+	margin: 5px 0 15px 0;
+	padding: 5px;
+	width: 568px;
+	width: 688px;
+/*	font-weight: bold;*/
+/*	color: #fff;*/
+	border: 1px solid #808080;
+	background-color: #ddd;
+}
+
+div.promoter_investment
+{
+	margin: 0 0 10px 0;
+	padding: 0;
+	border: 0;
+	
+	width: 100%;
+	width: 580px;
+	width: 700px;
+
+	border-bottom: 1px solid #808080;
+}
+
+div.promoter_investment div.name
+{
+	float: left;
+	
+	margin: 0;
+	padding: 0;
+	border: 0;
+	
+	width: 120px;
+}
+
+div.promoter_investment div.details
+{
+	margin: 0 0 0 125px;
+	padding: 0;
+	border: 0;
+	
+	width: 450px;
+}
+
+div.promoter_investment div.details div.in_area
+{
+	margin: 0;
+	padding: 0;
+	border: 0;
+	
+	width: 100%;
+	
+	position: relative;
+}
+
+div.promoter_investment div.details div.in_area .in_button
+{
+	display: block;
+		
+	margin: 0;
+	padding: 0;
+	
+	width: 40px;
+
+	position: absolute;
+	top: 0;
+	right: 0;
+}
+
+
+div.promoter_investment div.details div.in_area div.in_set
+{
+	margin: 0 0 10px 0;
+	padding: 0 0 10px 0;
+	border: 0;
+	
+	width: 400px;
+	
+	border-bottom: 1px solid #aaa;
+}
+
+div.promoter_investment div.details div.in_area div.in_set span.in_set_end
+{
+	display: block;
+	clear: both;
+}
+
+
+div.promoter_investment div.details div.in_area div.in_set span.stock
+{
+	float: left;
+	display: block;
+	
+	margin: 0;
+	padding: 0;
+	border: 0;
+	
+	width: 90px;
+	width: 130px;
+	height: 25px;
+}
+
+div.promoter_investment div.details div.in_area div.in_set span.stock input
+{
+	width: 70px;
+}
+
+div.promoter_investment div.details div.in_area div.in_set span.investment
+{
+	float: left;
+	display: block;
+	
+	margin: 0;
+	padding: 0;
+	border: 0;
+	
+	width: 90px;
+	width: 130px;
+	height: 25px;
+}
+
+div.promoter_investment div.details div.in_area div.in_set span.investment input
+{
+	width: 70px;
+}
+
+div.promoter_investment div.details div.in_area div.in_set span.investment_4_llc
+{
+	width: 150px;
+}
+div.promoter_investment div.details div.in_area div.in_set span.ratio
+{
+	float: left;
+	display: block;
+	
+	margin: 0;
+	padding: 0;
+	border: 0;
+	
+	width: 60px;
+	height: 25px;
+}
+
+div.promoter_investment div.details div.in_area div.in_set span.inkind_label
+{
+	float: left;
+	display: block;
+	
+	margin: 5px 0 0 0;
+	padding: 0;
+	border: 0;
+	
+	width: 100px;
+	width: 100%;
+	height: 20px;
+}
+
+
+div.promoter_investment div.details div.in_area div.in_set span.inkind
+{
+	float: left;
+	display: block;
+	
+	margin: 5px 0 0 0;
+	padding: 0;
+	border: 0;
+	
+	width: 296px;
+	width: 100%;
+}
+
+div.promoter_investment div.details div.in_area div.in_set span.inkind textarea
+{
+	width: 98%;
+}
+
+div.promoter_investment div.details div.in_area div.in_set span.del_flag
+{
+	float: left;
+	display: block;
+	
+	margin: 0 0 0 85px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	
+	width: 72px;
+	height: 25px;
+}
